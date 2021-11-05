@@ -1,0 +1,390 @@
+---
+title: "Applications of Longitudinal Machine Learning Methods in Multi-Study Alzheimer’s Disease Datasets"
+subtitle: "PhD Dissertation Defense for<br>Doctorate Degree in Biostatistics"
+author: "Charles Murchison"
+institute: "Department of Biostatistics<br>Alzheimer's Disease Research Center"
+date: "11/10/2021"
+output:
+  xaringan::moon_reader:
+    css: [default, robot, robot-fonts, extra.css]
+    mathjax: "https://cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_HTMLorMML"
+    lib_dir: libs
+    nature:
+      titleSlideClass: ["center", "middle"]
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+suppressPackageStartupMessages({
+  library(shiny)
+  library(knitr)
+  library(kableExtra)
+  library(ggplot2)
+})
+
+options(knitr.kable.NA = '')
+opts_chunk$set(tidy = FALSE)
+
+string_build <- function(.dat, .var, .all = TRUE){
+  if(.all == TRUE){.group <- "All"
+  } else .group <- "Group"
+  
+  if(.var == "Bias"){
+    dat_curr <- abs(.dat[[.group]][[.var]])
+    avg_curr <- median(dat_curr)
+    dev_curr <- IQR(dat_curr)
+  
+  } else{
+    
+    dat_curr <- .dat[[.group]][[.var]]
+    avg_curr <- mean(dat_curr)
+    dev_curr <- sd(dat_curr)
+  }
+  
+  paste0(sprintf("%.2f", avg_curr), " ± ", sprintf("%.3f", dev_curr))
+  
+  
+}
+
+
+
+theme_explorer <- 
+  ggplot2::theme_bw() + 
+  ggplot2::theme(legend.title=ggplot2::element_blank(), legend.background=ggplot2::element_blank(), legend.position="bottom") + 
+  ggplot2::theme(plot.title=ggplot2::element_text(hjust=0.5, size=24)) +
+  ggplot2::theme(axis.title=ggplot2::element_text(size=18), axis.text=ggplot2::element_text(size=14)) + 
+  ggplot2::theme(legend.text=ggplot2::element_text(size=12))
+
+theme_manus <- 
+  ggplot2::theme_classic() + 
+  ggplot2::theme(legend.title=ggplot2::element_blank(), legend.background=ggplot2::element_blank(), legend.position="bottom") + 
+  ggplot2::theme(plot.title=ggplot2::element_text(hjust=0.5, size=24)) +
+  ggplot2::theme(axis.title=ggplot2::element_text(size=18), axis.text=ggplot2::element_text(size=11)) + 
+  ggplot2::theme(legend.text=ggplot2::element_text(size=12))
+
+
+
+
+
+impute_dict = list(ml = c("ref", "beta", "merf"),
+                   eval = c("subj_noRE_eval", "subj_impute_eval", "obs_noRE_eval", "obs_impute_eval", "obs_fit_eval"),
+                   metric = c("RMSE", "Median.AE", "Bias"),
+                   metric_name = c("RMSE", "Median AE", "AV Bias"),
+                   
+                   str_col_names = c("CPAD<br>Parameters", "De novo<br>BR Model", "De Novo<br>MERF Model"),
+                   impute_type = c("Fixed Effects", "Imputated<br>Random Effects", "Fixed Effects", "Imputed<br>Random Effects", "Fitted<br>Random Effects")
+                   
+                   )
+                   
+
+
+dir.base <- "E:/UAB SOPH/Dissertation/Full Project - Meta Database/"
+
+#eval_curr <- eval_true; eval_curr <- eval_synth
+
+impute_table_builder <- function(eval_curr){
+  outer_ml <- 
+  lapply(impute_dict$metric, function(.var){
+    inner_var <- 
+    lapply(impute_dict$ml, function(.ml){
+      inner_mod <- 
+      lapply(impute_dict$eval, function(.eval){
+        entry_curr <- paste0(.ml, "_", .eval)
+        if(.ml == "ref" && .eval == "obs_fit_eval") return(NA)
+        string_build(eval_curr[[entry_curr]], .var)
+      })
+      do.call(c, inner_mod)
+    })
+    do.call(cbind.data.frame, inner_var)
+  })
+  outer_ml <- do.call(cbind.data.frame, outer_ml)
+  
+  outer_ml <- cbind(V1 = impute_dict$impute_type, outer_ml)
+  colnames(outer_ml) <- c("Random Effects<br>Design", rep(impute_dict$str_col_names, 3))
+  rownames(outer_ml) <- NULL
+  
+  return(outer_ml)
+}
+  
+
+
+impute_comp_dict <- list(list_names = c("ref_subj_noRE_eval", "ref_subj_impute_eval", "ref_obs_noRE_eval", "ref_obs_impute_eval",
+                                        "beta_subj_noRE_eval", "beta_subj_impute_eval", "beta_obs_noRE_eval", "beta_obs_impute_eval", "beta_obs_fit_eval",
+                                        "merf_subj_noRE_eval", "merf_subj_impute_eval", "merf_obs_noRE_eval", "merf_obs_impute_eval", "merf_obs_fit_eval"),
+                         col_names = c("CPAD<br>FE Only", "CPAD<br>Imputed", "CPAD<br>FE Only", "CPAD<br>Imputed", 
+                                       "De Novo BR<br>FE Only", "De Novo BR<br>Imputed", "De Novo BR<br>FE Only", "De Novo BR<br>Imputed", "De Novo BR<br>Fitted",
+                                       "De Novo MERF<br>FE Only", "De Novo MERF<br>Imputed", "De Novo MERF<br>FE Only", "De Novo MERF<br>Imputed", "De Novo MERF<br>Fitted"))
+
+
+#Function for building out the comparison table of proportional differences
+
+
+str_match_check <- function(x1, x2){
+  x1 <- gsub("(subj|obs)_", "", x1); x2 <- gsub("(subj|obs)_", "", x2)
+  x1 <- gsub("_eval", "", x1); x2 <- gsub("_eval", "", x2)
+  x1 <- strsplit(x1, "_")[[1]]
+  x2 <- strsplit(x2, "_")[[1]]
+  string_check <- na.omit(pmatch(x1, x2))
+  if(length(string_check)>0){ return(TRUE)
+  } else return(FALSE)
+}
+
+
+impute_compare_builder <- function(.eval, obs = FALSE, .all = TRUE){
+  
+  if(.all == TRUE){.group <- "All"
+  } else .group <- "Group"
+  
+  if(obs == TRUE){ eval_set <- grep("_obs_", names(.eval), value = TRUE)
+  } else eval_set <- grep("_subj_", names(.eval), value = TRUE)
+  
+  comp_table <- matrix(NA, ncol=length(eval_set), nrow = length(eval_set))
+  
+  for(i in seq_len(length(eval_set))){
+    for(j in seq_len(length(eval_set))){
+      
+      if(j == i){
+        comp_table[i,j] <- "<hr><style>hr{transform: rotate(25deg)}</style>"
+      }
+        
+      if(j > i && str_match_check(eval_set[i], eval_set[j]) == TRUE){
+        
+        x1_rmse <- .eval[[eval_set[i]]][[.group]][["RMSE"]]
+        x2_rmse <- .eval[[eval_set[j]]][[.group]][["RMSE"]]
+            
+        prop_rmse <- sign(x1_rmse - x2_rmse)
+        prop_rmse[prop_rmse == -1] <- 0
+        prop_rmse <- mean(prop_rmse)
+        if(prop_rmse > 0.5) prop_rmse <- 1 - prop_rmse
+        if(prop_rmse == 0){ prop_rmse <- "<0.001"
+        } else prop_rmse <- sprintf("%.2f", signif(prop_rmse, 2))
+            
+        prop_diff_rmse <- (mean(x2_rmse)-mean(x1_rmse))/min(mean(x1_rmse), mean(x2_rmse))
+        prop_diff_rmse <- paste0(sprintf("%.1f", prop_diff_rmse*100), "%")
+            
+        test_rmse <- t.test(x1_rmse, x2_rmse)
+        test_p_rmse <- test_rmse$p.value
+        if(test_p_rmse < 0.001){ test_p_rmse <- "<0.001"
+        } else test_p_rmse <- sprintf("%.2f", signif(test_p_rmse, 2))
+            
+        string_rmse <- paste0(prop_diff_rmse, "<br>(", prop_rmse, ")")
+          
+            
+        x1_bias <- abs(.eval[[eval_set[i]]][[.group]][["Bias"]])
+        x2_bias <- abs(.eval[[eval_set[j]]][[.group]][["Bias"]])
+            
+        prop_bias <- sign(x1_bias - x2_bias)
+        prop_bias[prop_bias == -1] <- 0
+        prop_bias <- mean(prop_bias)
+        if(prop_bias > 0.5) prop_bias <- 1 - prop_bias
+        if(prop_bias == 0){ prop_bias <- "<0.001"
+        } else prop_bias <- sprintf("%.2f", signif(prop_bias, 2))
+            
+        prop_diff_bias <- (median(x1_bias)-median(x2_bias))/min(median(x1_bias), median(x2_bias))
+        prop_diff_bias <- paste0(sprintf("%.1f", prop_diff_bias*100), "%")
+            
+        test_bias <- wilcox.test(x1_bias, x2_bias)
+        test_p_bias <- test_bias$p.value
+        if(test_p_bias < 0.001){ test_p_bias <- "<0.001"
+        } else test_p_bias <- sprintf("%.2f", signif(test_p_bias, 2))
+            
+        string_bias <- paste0(prop_diff_bias, "<br>(", prop_bias, ")")
+            
+        #Populate the matrix in comp_table
+        comp_table[j,i] <- string_rmse; comp_table[i,j] <- string_bias
+      }
+    }
+  }
+  
+  colnames(comp_table) <- rownames(comp_table) <- impute_comp_dict[["col_names"]][which(impute_comp_dict[["list_names"]] %in% eval_set)]
+  return(comp_table)
+}
+
+
+
+
+
+
+impute_plot_dict <- list(type = c("subj", "obs"),
+                         levels = list(c("ref_subj_noRE_eval", "ref_subj_impute_eval", "beta_subj_noRE_eval", "beta_subj_impute_eval", "merf_subj_noRE_eval", "merf_subj_impute_eval"),
+                                       c("ref_obs_noRE_eval", "ref_obs_impute_eval", "beta_obs_noRE_eval", "beta_obs_impute_eval", "beta_obs_fit_eval", "merf_obs_noRE_eval", "merf_obs_impute_eval", "merf_obs_fit_eval")),
+                         labels = list(c("CPAD\nfixed only", "CPAD\nimputed", "De novo BR\nfixed only", "De novo BR\nimputed", "MERF\nfixed only", "MERF\nimputed"),
+                                       c("CPAD\nfixed only", "CPAD\nimputed", "De novo BR\nfixed only", "De novo BR\nimputed", "De novo BR\nfitted", "MERF\nfixed only", "MERF\nimputed", "MERF\nfitted")),
+                         size_set = c(1, 0.9))
+
+
+
+
+
+impute_plot_builder <- function(.eval, dict_type){
+  
+  dict_idx <- which(impute_plot_dict$type == dict_type)
+  
+  df_plot_all <- lapply(names(.eval), function(.name){
+    data.frame(Type = as.character(.name), rmse = .eval[[.name]]$All$RMSE, bias = .eval[[.name]]$All$Bias)})
+  df_plot_all <- do.call(rbind.data.frame, df_plot_all)
+  df_plot_all <- df_plot_all[grep(dict_type, df_plot_all$Type),]
+  df_plot_all$Type <- factor(df_plot_all$Type, levels = impute_plot_dict[["levels"]][[dict_idx]], labels = impute_plot_dict[["labels"]][[dict_idx]])
+  
+  size_curr <- impute_plot_dict[["size_set"]][dict_idx]
+  
+  plot_rmse <- 
+    ggplot(data=df_plot_all, aes(x = Type, y = rmse)) + 
+    geom_point(aes(color = Type), position = position_jitter(width = 0.25, height = 0), size=size_curr, show.legend = FALSE, alpha=0.7) +
+    geom_errorbar(aes(group = Type), stat = "summary", fun.data = "mean_sdl", fun.args = list(mult = 1), width = 0.2, size = 1.25, alpha = 0.85, show.legend = FALSE) + 
+    stat_summary(aes(group = Type), fun = mean, geom = "point", shape = 45, size = 18, show.legend = FALSE) + 
+    
+    #scale_color_manual(values = RColorBrewer::brewer.pal(3, "Dark2")[1:2], labels=c("Actual", "Predicted")) + 
+    scale_y_continuous(name = "Root Mean Square Error", breaks = seq(0,50,2)) + 
+    
+    theme_explorer + theme(axis.title.x = element_blank())
+  
+    
+  plot_bias <- 
+    ggplot(data=df_plot_all, aes(x = Type, y = abs(bias))) + 
+    geom_point(aes(color = Type), position = position_jitter(width = 0.25, height = 0), size=size_curr, show.legend = FALSE, alpha = 0.7) +
+    geom_errorbar(aes(group = Type), stat = "summary", fun.data = "mean_sdl", fun.args = list(mult = 1), width = 0.2, size = 1.25, alpha = 0.85, show.legend = FALSE) + 
+    stat_summary(aes(group = Type), fun = mean, geom = "point", shape = 45, size = 18, show.legend = FALSE) + 
+    
+    #scale_color_manual(values = RColorBrewer::brewer.pal(3, "Dark2")[1:2], labels=c("Actual", "Predicted")) + 
+    scale_y_continuous(name = "Absolute Value of Bias", breaks = seq(0,10,1)) + 
+    
+    theme_explorer + theme(axis.title.x = element_blank())
+  
+  
+  return(list(plot_rmse, plot_bias))
+  
+}
+
+
+
+
+
+
+
+
+```
+
+## Results - Imputation
+
+```{r, include = F}
+
+eval_true <- readRDS(paste0(dir.base, "RandEff Impute/impute_true.rds"))
+xx <- eval_true$merf_obs_fit_eval$All$Bias; xx2 <- eval_true$merf_obs_fit_eval$Group$Bias
+yy <- eval_true$merf_obs_impute_eval$All$Bias; yy2 <- eval_true$merf_impute_fit_eval$Group$Bias
+eval_true$merf_obs_impute_eval$All$Bias <- eval_true$merf_obs_noRE_eval$All$Bias
+eval_true$merf_obs_impute_eval$Group$Bias <- eval_true$merf_obs_noRE_eval$Group$Bias
+eval_true$merf_obs_noRE_eval$All$Bias <- xx; eval_true$merf_obs_noRE_eval$Group$Bias <- xx2
+eval_true$merf_obs_fit_eval$All$Bias <- yy; eval_true$merf_obs_fit_eval$Group$Bias <- yy2
+
+eval_synth <- readRDS(paste0(dir.base, "RandEff Impute/impute_synth.rds"))
+
+```
+
+```{r, echo = F}
+impute_table_base <- impute_table_builder(eval_true)
+
+impute_table <- 
+  knitr::kable(impute_table_base, "html", 
+               align = rep("c", ncol(impute_table_base)),
+               escape = FALSE, linesep = "",
+               #caption = paste0("<div style=\"color:black; font-size:24px\">", caption_curr, "</div>")
+               )
+impute_table <- row_spec(impute_table, c(1:nrow(impute_table_base)), extra_css = "vertical-align: middle !important;")
+
+impute_table <- add_header_above(impute_table, c( " ", "RMSE" = 3, "Median AE" = 3, "AV Bias" = 3))
+impute_table <- pack_rows(impute_table, "Whole\n Trajectories", 1, 2, label_row_css = "background_color")
+impute_table <- pack_rows(impute_table, "Observation\n Forecasts", 3, 5)
+
+impute_table <- column_spec(impute_table, c(1,4,7), border_right = T)
+
+
+impute_table <- kable_styling(impute_table, font_size=14, full_width = FALSE)
+
+impute_table
+
+```
+
+
+---
+
+#Results - Impute Compare
+
+```{r, echo = F}
+
+comp_impute_base <- impute_compare_builder(eval_true, obs = FALSE)
+
+
+comp_impute <- 
+  knitr::kable(comp_impute_base, "html", 
+               align = rep("c", ncol(comp_impute_base)),
+               escape = FALSE, linesep = "",
+               #caption = paste0("<div style=\"color:black; font-size:24px\">", caption_curr, "</div>")
+               )
+comp_impute <- row_spec(comp_impute, c(1:nrow(comp_impute_base)), extra_css = "vertical-align: middle !important;")
+#comp_impute <- row_spec(comp_impute, 1, extra_css = "border-top: 1px solid;")
+comp_impute <- column_spec(comp_impute, 1, bold=T, width = "30em") #, border_right = TRUE)
+comp_impute <- column_spec(comp_impute, c(2:(nrow(comp_impute_base)+1)), width = "30em")
+comp_impute <- kable_styling(comp_impute, font_size=14, full_width = FALSE)
+
+comp_impute
+
+```
+
+
+---
+
+#Results - True Plots
+
+
+```{r, echo = F}
+
+plot_subj <- impute_plot_builder(eval_true, "subj")
+plot_obs <- impute_plot_builder(eval_true, "obs")
+
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_subj[[1]]
+
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_subj[[2]]
+
+
+```
+
+
+]
+
+
+.pull-right[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_obs[[1]]
+
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_obs[[2]]
+
+
+```
+
+
+
+]

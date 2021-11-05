@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Applications of Longitudinal Machine Learning Methods in Multi-Study Alzheimer’s Disease Datasets</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Charles Murchison" />
+    <meta name="date" content="2021-11-10" />
+    <script src="libs/header-attrs-2.8/header-attrs.js"></script>
+    <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
+    <link href="libs/remark-css-0.0.1/robot.css" rel="stylesheet" />
+    <link href="libs/remark-css-0.0.1/robot-fonts.css" rel="stylesheet" />
+    <script src="libs/kePrint-0.0.1/kePrint.js"></script>
+    <link href="libs/lightable-0.0.1/lightable.css" rel="stylesheet" />
+    <link rel="stylesheet" href="extra.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, title-slide
+
+# Applications of Longitudinal Machine Learning Methods in Multi-Study Alzheimer’s Disease Datasets
+## PhD Dissertation Defense for<br>Doctorate Degree in Biostatistics
+### Charles Murchison
+### Department of Biostatistics<br>Alzheimer’s Disease Research Center
+### 11/10/2021
+
+---
+
+
+
+
+##Approach - Final Dataset
+
+
+&lt;table class="table" style="font-size: 12px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+&lt;tr&gt;
+&lt;th style="empty-cells: hide;border-bottom:hidden;" colspan="1"&gt;&lt;/th&gt;
+&lt;th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="3"&gt;&lt;div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; "&gt;Training Dataset&lt;/div&gt;&lt;/th&gt;
+&lt;th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="3"&gt;&lt;div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; "&gt;Trajectory Holdouts&lt;/div&gt;&lt;/th&gt;
+&lt;th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="3"&gt;&lt;div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; "&gt;Observation Holdouts&lt;/div&gt;&lt;/th&gt;
+&lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; Covariate &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; All Subjects&lt;br&gt;N = 2755 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; CDR 0 Subjects&lt;br&gt;N = 453 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; CDR 0.5+ Subjects&lt;br&gt;N = 2302 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; All Subjects&lt;br&gt;N = 304 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; CDR 0 Subjects&lt;br&gt;N = 52 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; CDR 0.5+ Subjects&lt;br&gt;N = 252 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; All Subjects&lt;br&gt;N = 230 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; CDR 0 Subjects&lt;br&gt;N = 34 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; CDR 0.5+ Subjects&lt;br&gt;N = 196 &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;border-right:1px solid;width: 7em; font-weight: bold;border-top: 1px solid"&gt; BL ADAS-Cog&lt;br&gt;Score &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 12.9 ±&lt;br&gt;8.02 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 5.9 ±&lt;br&gt;2.90 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;border-top: 1px solid"&gt; 14.5 ±&lt;br&gt;7.96 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 12.8 ±&lt;br&gt;8.12 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 6.2 ±&lt;br&gt;3.22 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;border-top: 1px solid"&gt; 14.4 ±&lt;br&gt;8.15 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 12.5 ±&lt;br&gt;7.15 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 6.0 ±&lt;br&gt;2.85 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 13.8 ±&lt;br&gt;7.05 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;border-right:1px solid;width: 7em; font-weight: bold;"&gt; BL Age (yrs) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 73.7 ±&lt;br&gt;7.58 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 73.8 ±&lt;br&gt;6.03 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;"&gt; 73.7 ±&lt;br&gt;7.85 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 74.0 ±&lt;br&gt;7.92 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 73.8 ±&lt;br&gt;5.48 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;"&gt; 74.1 ±&lt;br&gt;8.34 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 73.9 ±&lt;br&gt;7.21 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 73.8 ±&lt;br&gt;5.82 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 74.0 ±&lt;br&gt;7.43 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;border-right:1px solid;width: 7em; font-weight: bold;"&gt; BL MMSE&lt;br&gt;Score &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 25.0 ±&lt;br&gt;4.46 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 29.0 ±&lt;br&gt;1.22 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;"&gt; 24.3 ±&lt;br&gt;4.45 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 24.9 ±&lt;br&gt;4.65 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 29.1 ±&lt;br&gt;1.01 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;"&gt; 24.1 ±&lt;br&gt;4.64 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 25.6 ±&lt;br&gt;4.04 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 28.8 ±&lt;br&gt;1.37 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 25.0 ±&lt;br&gt;4.10 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;border-right:1px solid;width: 7em; font-weight: bold;"&gt; BL Weight (lbs) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 144.2 ±&lt;br&gt;48.96 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 152.7 ±&lt;br&gt;46.84 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;"&gt; 142.5 ±&lt;br&gt;49.20 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 144.2 ±&lt;br&gt;49.93 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 154.9 ±&lt;br&gt;50.39 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;"&gt; 142.0 ±&lt;br&gt;49.65 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 146.3 ±&lt;br&gt;48.74 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 158.6 ±&lt;br&gt;45.77 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 144.2 ±&lt;br&gt;49.03 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;border-right:1px solid;width: 7em; font-weight: bold;"&gt; BL Systolic&lt;br&gt;Blood Pressure &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 133.8 ±&lt;br&gt;17.28 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 134.0 ±&lt;br&gt;16.66 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;"&gt; 133.8 ±&lt;br&gt;17.40 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 133.0 ±&lt;br&gt;16.45 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 134.6 ±&lt;br&gt;16.42 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;"&gt; 132.7 ±&lt;br&gt;16.46 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 133.8 ±&lt;br&gt;16.72 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 131.7 ±&lt;br&gt;14.97 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 134.2 ±&lt;br&gt;17.01 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;border-right:1px solid;width: 7em; font-weight: bold;"&gt; BL Diastolic&lt;br&gt;Blood Pressure &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 74.2 ±&lt;br&gt;9.78 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 73.6 ±&lt;br&gt;9.77 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;"&gt; 74.3 ±&lt;br&gt;9.78 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 74.4 ±&lt;br&gt;9.20 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 73.7 ±&lt;br&gt;9.07 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;"&gt; 74.5 ±&lt;br&gt;9.23 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 74.1 ±&lt;br&gt;10.02 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 72.5 ±&lt;br&gt;9.95 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 74.3 ±&lt;br&gt;10.04 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;div style = "font-size: 18px; text-align: left;"&gt;&lt;br&gt;Continuous variables presented as mean ± standard deviaion&lt;br&gt;
+&lt;br&gt;Categorical variables on the following slide presented as counts with&lt;br&gt;proportions in parenthesis based on column margins&lt;/div&gt;
+
+---
+
+##Approach - Final Dataset
+
+
+&lt;table class="table" style="font-size: 12px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+&lt;tr&gt;
+&lt;th style="empty-cells: hide;border-bottom:hidden;" colspan="1"&gt;&lt;/th&gt;
+&lt;th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="3"&gt;&lt;div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; "&gt;Training Dataset&lt;/div&gt;&lt;/th&gt;
+&lt;th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="3"&gt;&lt;div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; "&gt;Trajectory Holdouts&lt;/div&gt;&lt;/th&gt;
+&lt;th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="3"&gt;&lt;div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; "&gt;Observation Holdouts&lt;/div&gt;&lt;/th&gt;
+&lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; Covariate &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; All Subjects&lt;br&gt;N = 2755 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; CDR 0 Subjects&lt;br&gt;N = 453 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; CDR 0.5+ Subjects&lt;br&gt;N = 2302 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; All Subjects&lt;br&gt;N = 304 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; CDR 0 Subjects&lt;br&gt;N = 52 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; CDR 0.5+ Subjects&lt;br&gt;N = 252 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; All Subjects&lt;br&gt;N = 230 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; CDR 0 Subjects&lt;br&gt;N = 34 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; CDR 0.5+ Subjects&lt;br&gt;N = 196 &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;border-right:1px solid;width: 7em; font-weight: bold;border-top: 1px solid"&gt; Female &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 1319&lt;br&gt;(47.9) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 228&lt;br&gt;(50.3) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;border-top: 1px solid"&gt; 1091&lt;br&gt;(47.4) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 144&lt;br&gt;(47.4) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 30&lt;br&gt;(57.7) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;border-top: 1px solid"&gt; 114&lt;br&gt;(45.2) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 111&lt;br&gt;(48.3) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 14&lt;br&gt;(41.2) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 97&lt;br&gt;(49.5) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;border-right:1px solid;width: 7em; font-weight: bold;border-top: 1px solid"&gt; Heterozygous&lt;br&gt;APOE4 Carriers &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 1145&lt;br&gt;(41.6) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 128&lt;br&gt;(28.3) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;border-top: 1px solid"&gt; 1017&lt;br&gt;(44.2) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 116&lt;br&gt;(38.2) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 7&lt;br&gt;(13.5) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;border-top: 1px solid"&gt; 109&lt;br&gt;(43.3) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 88&lt;br&gt;(38.3) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 11&lt;br&gt;(32.4) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 77&lt;br&gt;(39.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;border-right:1px solid;width: 7em; font-weight: bold;"&gt; Homozygous&lt;br&gt;APOE4 Carriers &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 344&lt;br&gt;(12.5) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 11&lt;br&gt;(2.4) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;"&gt; 333&lt;br&gt;(14.5) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 37&lt;br&gt;(12.2) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 3&lt;br&gt;(5.8) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;"&gt; 34&lt;br&gt;(13.5) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 26&lt;br&gt;(11.3) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 1&lt;br&gt;(2.9) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 25&lt;br&gt;(12.8) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;border-right:1px solid;width: 7em; font-weight: bold;border-top: 1px solid"&gt; Black / African&lt;br&gt;American &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 129&lt;br&gt;(4.7) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 27&lt;br&gt;(6.0) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;border-top: 1px solid"&gt; 102&lt;br&gt;(4.4) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 14&lt;br&gt;(4.6) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 3&lt;br&gt;(5.8) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;border-top: 1px solid"&gt; 11&lt;br&gt;(4.4) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 7&lt;br&gt;(3.0) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 1&lt;br&gt;(2.9) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 6&lt;br&gt;(3.1) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;border-right:1px solid;width: 7em; font-weight: bold;"&gt; Other &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 107&lt;br&gt;(3.9) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 13&lt;br&gt;(2.9) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;"&gt; 94&lt;br&gt;(4.1) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 7&lt;br&gt;(2.3) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 0&lt;br&gt;(0.0) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;"&gt; 7&lt;br&gt;(2.8) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 14&lt;br&gt;(6.1) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 1&lt;br&gt;(2.9) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 13&lt;br&gt;(6.6) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;border-right:1px solid;width: 7em; font-weight: bold;border-top: 1px solid"&gt; Hispanic &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 102&lt;br&gt;(3.7) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 14&lt;br&gt;(3.1) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;border-top: 1px solid"&gt; 88&lt;br&gt;(3.8) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 9&lt;br&gt;(3.0) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 1&lt;br&gt;(1.9) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;border-top: 1px solid"&gt; 8&lt;br&gt;(3.2) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 12&lt;br&gt;(5.2) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 0&lt;br&gt;(0.0) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 12&lt;br&gt;(6.1) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;border-right:1px solid;width: 7em; font-weight: bold;border-top: 1px solid"&gt; High School&lt;br&gt;Diploma or GED &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 516&lt;br&gt;(18.7) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 40&lt;br&gt;(8.8) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;border-top: 1px solid"&gt; 476&lt;br&gt;(20.7) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 55&lt;br&gt;(18.1) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 2&lt;br&gt;(3.8) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;border-top: 1px solid"&gt; 53&lt;br&gt;(21.0) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 42&lt;br&gt;(18.3) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 3&lt;br&gt;(8.8) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 39&lt;br&gt;(19.9) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;border-right:1px solid;width: 7em; font-weight: bold;"&gt; Some college &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 568&lt;br&gt;(20.6) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 92&lt;br&gt;(20.3) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;"&gt; 476&lt;br&gt;(20.7) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 50&lt;br&gt;(16.4) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 7&lt;br&gt;(13.5) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;"&gt; 43&lt;br&gt;(17.1) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 40&lt;br&gt;(17.4) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 9&lt;br&gt;(26.5) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 31&lt;br&gt;(15.8) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;border-right:1px solid;width: 7em; font-weight: bold;"&gt; College degree &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 631&lt;br&gt;(22.9) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 108&lt;br&gt;(23.8) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;"&gt; 523&lt;br&gt;(22.7) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 69&lt;br&gt;(22.7) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 18&lt;br&gt;(34.6) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;"&gt; 51&lt;br&gt;(20.2) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 64&lt;br&gt;(27.8) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 8&lt;br&gt;(23.5) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 56&lt;br&gt;(28.6) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;border-right:1px solid;width: 7em; font-weight: bold;"&gt; Some post-grad &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 460&lt;br&gt;(16.7) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 102&lt;br&gt;(22.5) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;"&gt; 358&lt;br&gt;(15.6) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 53&lt;br&gt;(17.4) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 14&lt;br&gt;(26.9) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;"&gt; 39&lt;br&gt;(15.5) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 42&lt;br&gt;(18.3) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 8&lt;br&gt;(23.5) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 34&lt;br&gt;(17.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;border-right:1px solid;width: 7em; font-weight: bold;"&gt; Graduate degree &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 363&lt;br&gt;(13.2) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 98&lt;br&gt;(21.6) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;"&gt; 265&lt;br&gt;(11.5) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 47&lt;br&gt;(15.5) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 11&lt;br&gt;(21.2) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;"&gt; 36&lt;br&gt;(14.3) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 24&lt;br&gt;(10.4) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 5&lt;br&gt;(14.7) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; 19&lt;br&gt;(9.7) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;border-right:1px solid;width: 7em; font-weight: bold;border-top: 1px solid"&gt; Anti-dementia&lt;br&gt;medication &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 1442&lt;br&gt;(52.3) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 30&lt;br&gt;(6.6) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;border-top: 1px solid"&gt; 1412&lt;br&gt;(61.3) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 150&lt;br&gt;(49.3) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 2&lt;br&gt;(3.8) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-right:1px solid;border-top: 1px solid"&gt; 148&lt;br&gt;(58.7) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 121&lt;br&gt;(52.6) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 4&lt;br&gt;(11.8) &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;border-top: 1px solid"&gt; 117&lt;br&gt;(59.7) &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+---
+
+## Synth Results - RE Design Comparison
+
+
+
+
+
+---
+
+## Synth Results - RE Compare Obs
+
+
+
+
+---
+
+
+
+---
+---
+
+&lt;h2 style="font-size: 40px; margin-bottom: 5px"&gt;ML/SL Comparison - ADAS Regression&lt;/h2&gt;
+
+
+&lt;div style = "font-size: 18px; text-align: center;"&gt;Trajectory comparisons in lower half of matrix with forecast comparisons in upper half&lt;br&gt;
+Direction of comparisons is column model relative to row model&lt;/div&gt;
+
+
+---
+
+
+
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_HTMLorMML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

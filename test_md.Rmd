@@ -1,0 +1,243 @@
+---
+title: "Applications of Longitudinal Machine Learning Methods in Multi-Study Alzheimer’s Disease Datasets"
+subtitle: "PhD Dissertation Defense for<br>Doctorate Degree in Biostatistics"
+author: "Charles Murchison"
+institute: "Department of Biostatistics<br>Alzheimer's Disease Research Center"
+date: "11/10/2021"
+output:
+  xaringan::moon_reader:
+    css: [default, robot, robot-fonts, extra.css]
+    mathjax: "https://cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_HTMLorMML"
+    lib_dir: libs
+    nature:
+      titleSlideClass: ["center", "middle"]
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+
+R.utils::sourceDirectory("./R/", modifiedOnly = FALSE)
+
+suppressPackageStartupMessages({
+  library(shiny)
+  library(knitr)
+  library(kableExtra)
+  library(ggplot2)
+})
+
+options(knitr.kable.NA = '')
+opts_chunk$set(tidy = FALSE)
+
+boot_dat <- readRDS("boot_data.rds")
+comp_table <- readRDS("boot_compare_wobs.rds")  #Use boot_compare.rds if you don't want to combine observations
+
+
+eval_true <- readRDS(paste0(dir.base, "RandEff Impute/impute_true.rds"))
+eval_synth <- readRDS(paste0(dir.base, "RandEff Impute/impute_synth.rds"))
+
+
+
+data_curr_orig <- readRDS(paste0(dir.base, "MERF/_targets/objects/holdout_split_dat"))
+dat <- data_curr_orig$all
+dat_bl <- data_curr_orig$bl
+
+dat_retain <- dat_bl$retained
+dat_holdout <- dat_bl$holdout
+
+dat_holdout <- data_curr_orig$all$holdout[data_curr_orig$all$holdout$VISTIME==0,]
+dat_retain <- data_curr_orig$all$retain[data_curr_orig$all$retain$VISTIME==0,]
+
+obs_id <- unique(dat$holdout_obs$UID)
+dat_obs <- dat_retain[dat_retain$UID %in% obs_id,]
+dat_obs2 <- dat$holdout_obs
+
+covarset <- tab1_dict[["var_names"]]
+covarset <- covarset[-which(covarset == "ADASTOTAL11")]
+
+for(ii in 1:length(covarset)){
+  dat_retain <- dat_retain[!is.na(dat_retain[[covarset[ii]]]),]
+  dat_holdout <- dat_holdout[!is.na(dat_holdout[[covarset[ii]]]),]
+  dat_obs <- dat_obs[!is.na(dat_obs[[covarset[ii]]]),]
+  dat_obs2 <- dat_obs2[!is.na(dat_obs2[[covarset[ii]]]),]
+  
+}
+
+#dat_retain <- dat_retain[-which(is.na(dat_retain$CDRSTAT) & is.na(dat_retain$ADASTOTAL11)),]
+#dat_holdout <- dat_holdout[-which(is.na(dat_holdout$CDRSTAT) & is.na(dat_holdout$ADASTOTAL11)),]
+#dat_obs <- dat_obs[-which(is.na(dat_obs$CDRSTAT) & is.na(dat_obs$ADASTOTAL11)),]
+
+tab1_retain <- table1_build(dat_retain)
+tab1_holdout <- table1_build(dat_holdout)
+tab1_obs <- table1_build(dat_obs)
+
+
+
+
+tab1_base <- do.call(cbind, list(tab1_retain, tab1_holdout[,-1], tab1_obs[,-1]))
+cat_vars <- grep("\\(", tab1_base[,2])
+tab1_cont_base <- tab1_base[-cat_vars,]
+tab1_cat_base <- tab1_base[cat_vars,]
+rownames(tab1_cont_base) <- rownames(tab1_cat_base) <- NULL
+
+tab1_cont <- 
+  knitr::kable(tab1_cont_base, "html", 
+               align = c("l", rep("c", ncol(tab1_cont_base)-1)),
+               escape = FALSE, linesep = "",
+               #caption = paste0("<div style=\"color:black; font-size:24px\">", caption_curr, "</div>")
+               )
+tab1_cont <- row_spec(tab1_cont, c(1:nrow(tab1_cont_base)), extra_css = "vertical-align: middle !important;")
+
+tab1_cont <- add_header_above(tab1_cont, c( " ", "Training Dataset" = 3, "Trajectory Holdouts" = 3, "Observation Holdouts" = 3))
+#tab1_cont <- pack_rows(tab1_cont, "Whole\n Trajectories", 1, 2, label_row_css = "background_color")
+#tab1_cont <- pack_rows(tab1_cont, "Observation\n Forecasts", 3, 5)
+
+tab1_cont <- column_spec(tab1_cont, c(1,4,7), border_right = T)
+tab1_cont <- column_spec(tab1_cont, c(1), width="7em", bold=T)
+
+
+tab1_cont <- kable_styling(tab1_cont, font_size=12, full_width = FALSE)
+tab1_cont <- row_spec(tab1_cont, c(1), extra_css = "border-top: 1px solid")
+
+
+
+
+tab1_cat <- 
+  knitr::kable(tab1_cat_base, "html", 
+               align = c("l", rep("c", ncol(tab1_cat_base)-1)),
+               escape = FALSE, linesep = "",
+               #caption = paste0("<div style=\"color:black; font-size:24px\">", caption_curr, "</div>")
+               )
+tab1_cat <- row_spec(tab1_cat, c(1:nrow(tab1_cat_base)), extra_css = "vertical-align: middle !important;")
+
+tab1_cat <- add_header_above(tab1_cat, c( " ", "Training Dataset" = 3, "Trajectory Holdouts" = 3, "Observation Holdouts" = 3))
+#tab1_cat <- pack_rows(tab1_cat, "Whole\n Trajectories", 1, 2, label_row_css = "background_color")
+#tab1_cat <- pack_rows(tab1_cat, "Observation\n Forecasts", 3, 5)
+
+tab1_cat <- column_spec(tab1_cat, c(1,4,7), border_right = T)
+tab1_cat <- column_spec(tab1_cat, c(1), width="7em", bold=T)
+tab1_cat <- row_spec(tab1_cat, c(1,2,4,6,7,12), extra_css = "border-top: 1px solid")
+
+
+tab1_cat <- kable_styling(tab1_cat, font_size=12, full_width = FALSE)
+
+
+
+
+
+
+```
+
+##Approach - Final Dataset
+
+
+```{r, echo=F}
+tab1_cont
+```
+
+<div style = "font-size: 18px; text-align: left;"><br>Continuous variables presented as mean ± standard deviaion<br>
+<br>Categorical variables on the following slide presented as counts with<br>proportions in parenthesis based on column margins</div>
+
+---
+
+##Approach - Final Dataset
+
+
+```{r, echo=F}
+tab1_cat
+```
+
+---
+
+## Synth Results - RE Design Comparison
+
+```{r, echo = F}
+
+
+# 
+# comp_impute_base <- impute_compare_builder(eval_synth, obs = FALSE)
+# 
+# 
+# comp_impute <- 
+#   knitr::kable(comp_impute_base, "html", 
+#                align = rep("c", ncol(comp_impute_base)),
+#                escape = FALSE, linesep = "",
+#                #caption = paste0("<div style=\"color:black; font-size:24px\">", caption_curr, "</div>")
+#                )
+# comp_impute <- row_spec(comp_impute, c(1:nrow(comp_impute_base)), extra_css = "vertical-align: middle !important;")
+# #comp_impute <- row_spec(comp_impute, 1, extra_css = "border-top: 1px solid;")
+# comp_impute <- column_spec(comp_impute, 1, bold=T, width = "50em") #, border_right = TRUE)
+# comp_impute <- column_spec(comp_impute, c(2:(nrow(comp_impute_base)+1)), width = "30em")
+# comp_impute <- kable_styling(comp_impute, font_size=14, full_width = FALSE)
+# 
+# comp_impute
+
+
+```
+
+
+
+---
+
+## Synth Results - RE Compare Obs
+
+```{r, echo = F}
+
+
+# 
+# comp_impute_base <- impute_compare_builder(eval_synth, obs = TRUE)
+# 
+# 
+# comp_impute <- 
+#   knitr::kable(comp_impute_base, "html", 
+#                align = rep("c", ncol(comp_impute_base)),
+#                escape = FALSE, linesep = "",
+#                #caption = paste0("<div style=\"color:black; font-size:24px\">", caption_curr, "</div>")
+#                )
+# comp_impute <- row_spec(comp_impute, c(1:nrow(comp_impute_base)), extra_css = "vertical-align: middle !important;")
+# #comp_impute <- row_spec(comp_impute, 1, extra_css = "border-top: 1px solid;")
+# comp_impute <- column_spec(comp_impute, 1, bold=T, width = "50em") #, border_right = TRUE)
+# comp_impute <- column_spec(comp_impute, c(2:(nrow(comp_impute_base)+1)), width = "30em")
+# comp_impute <- kable_styling(comp_impute, font_size=14, full_width = FALSE)
+# 
+# comp_impute
+
+```
+
+
+---
+
+
+
+---
+---
+
+<h2 style="font-size: 40px; margin-bottom: 5px">ML/SL Comparison - ADAS Regression</h2>
+
+```{r, echo = F, tidy=FALSE}
+
+# comp_curr_base <- comp_table[[1]]$RMSE
+# caption_curr <- "RMSE"
+# 
+# comp_curr <- 
+#   knitr::kable(comp_curr_base, "html", 
+#                align = rep("c", ncol(comp_curr_base)),
+#                escape = FALSE, linesep = "",
+#                caption = paste0("<div style=\"color:black; font-size:32px\">", caption_curr, "</div>")
+#                )
+# comp_curr <- row_spec(comp_curr, c(1:nrow(comp_curr_base)), extra_css = "vertical-align: middle !important;")
+# comp_curr <- column_spec(comp_curr, 1, bold=T)
+# comp_curr <- kable_styling(comp_curr, font_size=14, full_width = FALSE)
+# 
+# comp_curr
+
+```
+<div style = "font-size: 18px; text-align: center;">Trajectory comparisons in lower half of matrix with forecast comparisons in upper half<br>
+Direction of comparisons is column model relative to row model</div>
+
+
+---
+
+
+

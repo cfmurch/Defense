@@ -1,0 +1,59 @@
+.large { font-size: 130% }
+.small { font-size: 70% }
+
+.tab { margin-left: 35px; }
+
+p {
+  margin-bottom: 0;
+}
+
+
+.padder{
+  height: 1em;
+}
+
+.remark-slide-content {
+  background-image: url('logo.png'), url('logo2.png'), url('logo3.png');
+  background-position: 0% 100%, 100% 2px, 100% 100%;
+  background-size: 25%, 10%, 25%;
+  padding-left: 100px;  /* delete this for 4:3 aspect ratio */
+}
+
+
+.title-slide h1 {
+  font-size: 36px !important;
+}
+
+.title-slide h2 {
+  font-size: 28px !important;
+}
+
+.title-slide h2mod {
+  font-size: 44px !important;
+}
+
+.remark-slide-number {
+  font-size: 14pt;
+  margin-bottom: 70%;
+  margin-right: 91%;
+  color: black;
+  opacity: 0.5; /* default: 0.5 */
+}
+
+.hide-count .remark-slide-number{
+	display: none;
+}
+
+.footnote {
+  position: fixed;
+  bottom: 0.8%;
+  left: 26%;
+  right: 20%;
+  font-size: 60%;
+}
+
+h3.squat {
+  margin-bottom: 0px;
+  margin-top: 0px;
+}
+

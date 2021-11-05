@@ -1,0 +1,3719 @@
+---
+title: "Bonus Round"
+output:
+  xaringan::moon_reader:
+    css: [default, robot, robot-fonts, bonus.css]
+    mathjax: "https://cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_HTMLorMML"
+    lib_dir: libs
+    nature:
+      titleSlideClass: ["center", "middle"]
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+
+
+suppressPackageStartupMessages({
+  library(shiny)
+  library(knitr)
+  library(kableExtra)
+  library(ggplot2)
+})
+
+R.utils::sourceDirectory("./R/", modifiedOnly = FALSE)
+
+
+options(knitr.kable.NA = '')
+opts_chunk$set(tidy = FALSE)
+
+boot_dat <- readRDS("boot_data.rds")
+boot_ref <- readRDS("boot_ref.rds")
+comp_table <- readRDS("boot_compare_wobs.rds")  #Use boot_compare.rds if you don't want to combine observations
+
+dir.base <- "E:/UAB SOPH/Dissertation/Full Project - Meta Database/"
+eval_true <- readRDS(paste0(dir.base, "RandEff Impute/impute_true.rds"))
+eval_synth <- readRDS(paste0(dir.base, "RandEff Impute/impute_synth.rds"))
+
+
+
+```
+
+
+```{r xaringan-scribble, echo=FALSE}
+xaringanExtra::use_scribble()
+```
+
+```{r xaringan-tile-view, echo=FALSE}
+xaringanExtra::use_tile_view()
+```
+
+```{r broadcast, echo=FALSE}
+xaringanExtra::use_broadcast()
+```
+
+
+class: center, middle
+
+#Approach and Methods  
+#Meta-database and Flow
+
+---
+
+## Approach - Data Preparation
+
+```{r echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+knitr::include_graphics("Images/adcs_flow.png")
+```
+
+
+---
+
+## Approach - Validation Sets
+
+
+```{r echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+knitr::include_graphics("Images/adcs_flow_2.png")
+```
+
+---
+
+```{r echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+data_curr_orig <- readRDS(paste0(dir.base, "MERF/_targets/objects/holdout_split_dat"))
+dat <- data_curr_orig$all
+dat_bl <- data_curr_orig$bl
+
+dat_retain <- dat_bl$retained
+dat_holdout <- dat_bl$holdout
+
+dat_holdout <- data_curr_orig$all$holdout[data_curr_orig$all$holdout$VISTIME==0,]
+dat_retain <- data_curr_orig$all$retain[data_curr_orig$all$retain$VISTIME==0,]
+
+obs_id <- unique(dat$holdout_obs$UID)
+dat_obs <- dat_retain[dat_retain$UID %in% obs_id,]
+dat_obs2 <- dat$holdout_obs
+
+covarset <- tab1_dict[["var_names"]]
+covarset <- covarset[-which(covarset == "ADASTOTAL11")]
+
+for(ii in 1:length(covarset)){
+  dat_retain <- dat_retain[!is.na(dat_retain[[covarset[ii]]]),]
+  dat_holdout <- dat_holdout[!is.na(dat_holdout[[covarset[ii]]]),]
+  dat_obs <- dat_obs[!is.na(dat_obs[[covarset[ii]]]),]
+  dat_obs2 <- dat_obs2[!is.na(dat_obs2[[covarset[ii]]]),]
+  
+}
+
+#dat_retain <- dat_retain[-which(is.na(dat_retain$CDRSTAT) & is.na(dat_retain$ADASTOTAL11)),]
+#dat_holdout <- dat_holdout[-which(is.na(dat_holdout$CDRSTAT) & is.na(dat_holdout$ADASTOTAL11)),]
+#dat_obs <- dat_obs[-which(is.na(dat_obs$CDRSTAT) & is.na(dat_obs$ADASTOTAL11)),]
+
+tab1_retain <- table1_build(dat_retain)
+tab1_holdout <- table1_build(dat_holdout)
+tab1_obs <- table1_build(dat_obs)
+
+
+
+
+tab1_base <- do.call(cbind, list(tab1_retain, tab1_holdout[,-1], tab1_obs[,-1]))
+cat_vars <- grep("\\(", tab1_base[,2])
+tab1_cont_base <- tab1_base[-cat_vars,]
+tab1_cat_base <- tab1_base[cat_vars,]
+rownames(tab1_cont_base) <- rownames(tab1_cat_base) <- NULL
+
+tab1_cont <- 
+  knitr::kable(tab1_cont_base, "html", 
+               align = c("l", rep("c", ncol(tab1_cont_base)-1)),
+               escape = FALSE, linesep = "",
+               #caption = paste0("<div style=\"color:black; font-size:24px\">", caption_curr, "</div>")
+               )
+tab1_cont <- row_spec(tab1_cont, c(1:nrow(tab1_cont_base)), extra_css = "vertical-align: middle !important;")
+
+tab1_cont <- add_header_above(tab1_cont, c( " ", "Training Dataset" = 3, "Trajectory Holdouts" = 3, "Observation Holdouts" = 3))
+#tab1_cont <- pack_rows(tab1_cont, "Whole\n Trajectories", 1, 2, label_row_css = "background_color")
+#tab1_cont <- pack_rows(tab1_cont, "Observation\n Forecasts", 3, 5)
+
+tab1_cont <- column_spec(tab1_cont, c(1,4,7), border_right = T)
+tab1_cont <- column_spec(tab1_cont, c(1), width="7em", bold=T)
+
+
+tab1_cont <- kable_styling(tab1_cont, font_size=12, full_width = FALSE)
+tab1_cont <- row_spec(tab1_cont, c(1), extra_css = "border-top: 1px solid")
+
+
+
+
+tab1_cat <- 
+  knitr::kable(tab1_cat_base, "html", 
+               align = c("l", rep("c", ncol(tab1_cat_base)-1)),
+               escape = FALSE, linesep = "",
+               #caption = paste0("<div style=\"color:black; font-size:24px\">", caption_curr, "</div>")
+               )
+tab1_cat <- row_spec(tab1_cat, c(1:nrow(tab1_cat_base)), extra_css = "vertical-align: middle !important;")
+
+tab1_cat <- add_header_above(tab1_cat, c( " ", "Training Dataset" = 3, "Trajectory Holdouts" = 3, "Observation Holdouts" = 3))
+#tab1_cat <- pack_rows(tab1_cat, "Whole\n Trajectories", 1, 2, label_row_css = "background_color")
+#tab1_cat <- pack_rows(tab1_cat, "Observation\n Forecasts", 3, 5)
+
+tab1_cat <- column_spec(tab1_cat, c(1,4,7), border_right = T)
+tab1_cat <- column_spec(tab1_cat, c(1), width="7em", bold=T)
+tab1_cat <- row_spec(tab1_cat, c(1,2,4,6,7,12), extra_css = "border-top: 1px solid")
+
+
+tab1_cat <- kable_styling(tab1_cat, font_size=12, full_width = FALSE)
+
+
+
+
+
+
+```
+
+## Approach - Datasets at Baseline
+
+
+```{r, echo=F}
+tab1_cont
+```
+
+<div style = "font-size: 18px; text-align: left;"><br>Continuous variables presented as mean ± standard deviaion<br>
+<br>Categorical variables on the following slide presented as counts with<br>proportions in parenthesis based on column margins</div>
+
+---
+
+## Approach - Datasets at Baseline
+
+
+```{r, echo=F}
+tab1_cat
+```
+
+
+
+
+---
+
+## Approach - Pipeline Flow
+
+```{r echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+knitr::include_graphics("Images/ML_flow.png")
+```
+
+
+
+
+---
+
+class: center, middle
+
+#Preliminary Results  
+#Reference Models
+
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+
+dir.base <- "E:/UAB SOPH/Dissertation/Full Project - Meta Database/"
+merf.dir <- paste0(dir.base, "MERF/From Cheaha/_targets/objects/")
+
+
+adas_plot <- readRDS(paste0(merf.dir, "refmod_adas_eval_plots"))
+adas_eval <- adas_ref <- readRDS(paste0(merf.dir, "refmod_adas_holdout_eval"))
+adas_plot_obs <- readRDS(paste0(merf.dir, "refmod_adas_eval_plots_obs_noRE"))
+adas_eval_obs <- adas_ref_obs <- readRDS(paste0(merf.dir, "refmod_adas_holdout_eval_obs_noRE"))
+
+
+cdr_plot <- readRDS(paste0(merf.dir, "refmod_cdr_eval_plots"))
+cdr_eval <- cdr_ref <- readRDS(paste0(merf.dir, "refmod_cdr_holdout_eval"))
+cdr_plot_obs <- readRDS(paste0(merf.dir, "refmod_cdr_eval_plots_obs_noRE"))
+cdr_eval_obs <- cdr_ref_obs <- readRDS(paste0(merf.dir, "refmod_cdr_holdout_eval_obs_noRE"))
+
+
+```
+
+
+---
+
+<h2 style="margin-top: 15px; margin-bottom: 25px; font-size: 42px;">Reference - ADAS CPAD Trajectories</h2>
+
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_adas_rebuild(adas_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_adas_rebuild(adas_plot[[1]]$diff$data)
+
+```
+
+]
+
+.pull-right[
+<br>
+```{r, echo=F}
+#tab_curr_base <- table_proc_cont(rbind(adas_eval[[1]]$Group, adas_eval[[1]]$All))
+tab_curr_base <- table_proc_cont(rbind(adas_eval[[1]]$Group, adas_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=16, full_width =F)
+
+tab_curr
+```
+
+]
+
+
+---
+
+<h2 style="margin-top: 15px; margin-bottom: 25px; font-size: 42px;">Reference - ADAS CPAD Forecasting</h2>
+
+
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_adas_rebuild(adas_plot_obs[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_adas_rebuild(adas_plot_obs[[1]]$diff$data)
+
+```
+
+]
+
+.pull-right[
+<br>
+<br>
+```{r, echo=F}
+tab_curr_base <- table_proc_cont(rbind(adas_eval_obs[[1]]$Group, adas_eval_obs[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=16, full_width =F)
+
+tab_curr
+
+```
+
+]
+
+
+---
+
+
+
+
+<h2 style="margin-top: 15px; margin-bottom: 25px; font-size: 42px;">Reference - CDR Logistic Trajectories</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+cdr_plot <- readRDS(paste0(merf.dir, "refmod_cdr_eval_plots"))
+
+cdr_eval <- cdr_ref <- readRDS(paste0(merf.dir, "refmod_cdr_holdout_eval"))
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+
+```
+
+]
+
+.pull-right[
+<br>
+<br>
+```{r, echo=F}
+tab_curr_base <- table_proc_cat(rbind(cdr_eval[[1]]$Group, cdr_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=16, full_width =F)
+
+tab_curr
+
+```
+
+]
+
+
+---
+
+
+<h2 style="margin-top: 15px; margin-bottom: 25px; font-size: 42px;">Reference - CDR Logistic Forecasting</h2>
+
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_cdr_rebuild(cdr_plot_obs[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_cdr_rebuild(cdr_plot_obs[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+
+```
+
+]
+
+.pull-right[
+<br>
+<br>
+```{r, echo=F}
+tab_curr_base <- table_proc_cat(rbind(cdr_eval_obs[[1]]$Group, cdr_eval_obs[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=16, full_width =F)
+
+tab_curr
+
+```
+
+]
+
+
+
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class: center, middle
+
+#Aim 1 Results 
+#Ensemble Methods
+#ADAS-Cog Score
+
+
+---
+
+## Aim 1 - Ensemble ADAS Summary
+
+<div style="text-align: center; font-size: 32px"><b>Whole Subject Trajectories</b></div>
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+merf.dir <- paste0(dir.base, "MERF/From Cheaha/_targets/objects/")
+glmer_ref.dir <- paste0(dir.base, "MERF_glmer/GLMER_ref/")
+glmer.dir <- paste0(dir.base, "MERF_glmer/Assembly/")
+mvtboost.dir <- paste0(dir.base, "MERF_mvt/From Cheaha/_targets/objects/")
+
+adas_eval <- adas_ref <- readRDS(paste0(merf.dir, "refmod_adas_holdout_eval"))
+adas_eval_obs <- adas_ref_obs <- readRDS(paste0(merf.dir, "refmod_adas_holdout_eval_obs_noRE"))
+
+adas_merf_eval <- readRDS(paste0(merf.dir, "merf_adas_holdout_eval"))
+adas_merf_eval_obs <- readRDS(paste0(merf.dir, "merf_adas_holdout_eval_obs"))
+adas_glmer_eval <- readRDS(paste0(glmer_ref.dir, "glmertree_ref_adas_holdout_eval"))
+adas_glmer_eval_obs <- readRDS(paste0(glmer_ref.dir, "glmertree_ref_adas_holdout_eval_obs"))
+adas_bagged_eval <- readRDS(paste0(glmer.dir, "glmertree_bagged_adas_holdout_eval"))
+adas_bagged_eval_obs <- readRDS(paste0(glmer.dir, "glmertree_bagged_adas_holdout_eval_obs"))
+adas_mvtboost_eval <- readRDS(paste0(mvtboost.dir, "mvtboost_adas_holdout_eval"))
+adas_mvtboost_eval_obs <- readRDS(paste0(mvtboost.dir, "mvtboost_adas_holdout_eval_obs"))
+
+list_adas <- list(adas_merf_eval, adas_glmer_eval, adas_bagged_eval, adas_mvtboost_eval)
+list_adas_obs <- list(adas_merf_eval_obs, adas_glmer_eval_obs, adas_bagged_eval_obs, adas_mvtboost_eval_obs)
+
+adas_summ <- table_summ_build(list_adas, adas_ref)
+tab_curr <- 
+  knitr::kable(adas_summ, "html",
+               align = c("l",rep("c", ncol(adas_summ)-1)),
+               escape=F, linesep="")
+#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr
+```
+
+<br>
+
+<div style="text-align: center; font-size: 32px"><b>Final Observation Forecasting</b></div>
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+adas_summ_obs <- table_summ_build(list_adas_obs, adas_eval_obs)
+tab_curr <- 
+  knitr::kable(adas_summ_obs, "html",
+               align = c("l",rep("c", ncol(adas_summ_obs)-1)),
+               escape=F, linesep="")
+#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr
+
+```
+
+
+
+
+---
+
+<h2 style="font-size: 40px; margin-top: 15px; margin-bottom: 25px">Aim 1 - ADAS MERF Hyperparameters</h2>
+
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+
+adas_hyper <- readRDS(paste0(merf.dir, "merf_adas_hyper_results"))
+
+
+
+```
+
+
+```{r, echo=F, fig.width=9, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+adas_hyper_curr <- plot_hyper_rebuild(adas_hyper$plot$data, size_shift = FALSE)
+adas_hyper_curr
+```
+$~$
+```{r, echo=F}
+tab_curr_base <- tab_proc_hyper(adas_hyper$best[,-1])
+caption_curr <- "ADAS MERF Hyperparameters"
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("cccc"),
+               escape=F, linesep="",
+               caption = caption_curr)
+tab_curr <- kable_styling(tab_curr, font_size=16, full_width =F)
+
+tab_curr
+
+```
+
+
+---
+
+
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 1 - ADAS MERF Trajectories</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+adas_plot <- readRDS(paste0(merf.dir, "merf_adas_eval_plots"))
+
+adas_eval <- readRDS(paste0(merf.dir, "merf_adas_holdout_eval"))
+
+boot_curr <- boot_dat[["merf"]]
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_adas_rebuild(adas_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_adas_rebuild(adas_plot[[1]]$diff$data)
+
+```
+
+]
+
+.pull-right[
+<div style="margin-top: -20px"> </div>
+```{r, echo=F}
+#tab_curr_base <- table_proc_cont(rbind(adas_eval[[1]]$Group, adas_eval[[1]]$All))
+tab_curr_base <- table_proc_cont(rbind(adas_eval[[1]]$Group, adas_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+```
+<div style="margin-top: 10px"> </div>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$adas, adas_eval[[1]]$All, adas_ref[[1]]$All, boot_ref[["adas"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = "Across all times"
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+
+]
+
+---
+
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 1 - ADAS MERF Forecasting</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+adas_plot <- readRDS(paste0(merf.dir, "merf_adas_eval_plots_obs"))
+
+adas_eval <- readRDS(paste0(merf.dir, "merf_adas_holdout_eval_obs"))
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_adas_rebuild(adas_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_adas_rebuild(adas_plot[[1]]$diff$data)
+
+```
+
+]
+
+.pull-right[
+<div style="margin-bottom: 10px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cont(rbind(adas_eval[[1]]$Group, adas_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<br>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$adas_obs, adas_eval[[1]]$All, adas_ref_obs[[1]]$All, boot_ref[["adas_obs"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = "Across all times"
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+
+]
+
+
+---
+
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 1 - ADAS GLMM Trajectories</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+adas_plot <- readRDS(paste0(glmer_ref.dir, "glmertree_ref_adas_eval_plots"))
+
+adas_eval <- readRDS(paste0(glmer_ref.dir, "glmertree_ref_adas_holdout_eval"))
+
+boot_curr <- boot_dat[["glmertree_ref"]]
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_adas_rebuild(adas_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_adas_rebuild(adas_plot[[1]]$diff$data)
+
+```
+
+]
+
+.pull-right[
+<div style="margin-top: -20px"> </div>
+```{r, echo=F}
+#tab_curr_base <- table_proc_cont(rbind(adas_eval[[1]]$Group, adas_eval[[1]]$All))
+tab_curr_base <- table_proc_cont(rbind(adas_eval[[1]]$Group, adas_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+```
+<div style="margin-top: 10px"> </div>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$adas, adas_eval[[1]]$All, adas_ref[[1]]$All, boot_ref[["adas"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = "Across all times"
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+
+]
+
+---
+
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 1 - ADAS GLMM Forecasting</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+adas_plot <- readRDS(paste0(glmer_ref.dir, "glmertree_ref_adas_eval_plots_obs"))
+
+adas_eval <- readRDS(paste0(glmer_ref.dir, "glmertree_ref_adas_holdout_eval_obs"))
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_adas_rebuild(adas_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_adas_rebuild(adas_plot[[1]]$diff$data)
+
+```
+
+]
+
+.pull-right[
+<div style="margin-bottom: 10px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cont(rbind(adas_eval[[1]]$Group, adas_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<br>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$adas_obs, adas_eval[[1]]$All, adas_ref_obs[[1]]$All, boot_ref[["adas_obs"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = "Across all times"
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+
+]
+
+
+
+
+---
+
+
+<h2 style="font-size: 40px; margin-top: 15px; margin-bottom: 25px">Aim 1 - ADAS Bagged Hyperparameters</h2>
+
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+
+adas_hyper <- readRDS(paste0(glmer.dir, "glmertree_bagged_adas_hyper_results"))
+
+
+
+```
+
+
+```{r, echo=F, fig.width=9, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+adas_hyper_curr <- plot_hyper_rebuild(adas_hyper$plot$data)
+GeomBar$draw_key <- draw_key_polygon3
+adas_hyper_curr; GeomBar$draw_key <- draw_key_orig
+```
+$~$
+```{r, echo=F}
+tab_curr_base <- tab_proc_hyper(adas_hyper$best[,-1])
+caption_curr <- "ADAS Bagged Hyperparameters"
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("cccc"),
+               escape=F, linesep="",
+               caption = caption_curr)
+tab_curr <- kable_styling(tab_curr, font_size=16, full_width =F)
+
+tab_curr
+
+```
+
+
+---
+
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 1 - ADAS Bagged Trajectories</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+adas_plot <- readRDS(paste0(glmer.dir, "glmertree_bagged_adas_eval_plots"))
+
+adas_eval <- readRDS(paste0(glmer.dir, "glmertree_bagged_adas_holdout_eval"))
+
+boot_curr <- boot_dat[["glmertree_bagged"]]
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_adas_rebuild(adas_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_adas_rebuild(adas_plot[[1]]$diff$data)
+
+```
+
+]
+
+.pull-right[
+<div style="margin-top: -20px"> </div>
+```{r, echo=F}
+#tab_curr_base <- table_proc_cont(rbind(adas_eval[[1]]$Group, adas_eval[[1]]$All))
+tab_curr_base <- table_proc_cont(rbind(adas_eval[[1]]$Group, adas_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+```
+<div style="margin-top: 10px"> </div>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$adas, adas_eval[[1]]$All, adas_ref[[1]]$All, boot_ref[["adas"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = "Across all times"
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+
+]
+
+---
+
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 1 - ADAS Bagged Forecasting</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+adas_plot <- readRDS(paste0(glmer.dir, "glmertree_bagged_adas_eval_plots_obs"))
+
+adas_eval <- readRDS(paste0(glmer.dir, "glmertree_bagged_adas_holdout_eval_obs"))
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_adas_rebuild(adas_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_adas_rebuild(adas_plot[[1]]$diff$data)
+
+```
+
+]
+
+.pull-right[
+<div style="margin-bottom: 10px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cont(rbind(adas_eval[[1]]$Group, adas_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<br>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$adas_obs, adas_eval[[1]]$All, adas_ref_obs[[1]]$All, boot_ref[["adas_obs"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = "Across all times"
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+
+]
+
+
+---
+
+
+<h2 style="font-size: 40px; margin-top: 15px; margin-bottom: 25px">Aim 1 - ADAS Boosted Hyperparameters</h2>
+
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+
+adas_hyper <- readRDS(paste0(mvtboost.dir, "mvtboost_adas_hyper_results"))
+
+
+
+```
+
+
+```{r, echo=F, fig.width=9, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+adas_hyper_curr <- plot_hyper_rebuild(adas_hyper$plot$data)
+GeomBar$draw_key <- draw_key_polygon3
+adas_hyper_curr; GeomBar$draw_key <- draw_key_orig
+```
+$~$
+```{r, echo=F}
+tab_curr_base <- tab_proc_hyper(adas_hyper$best[,-1])
+caption_curr <- "ADAS Boosted Hyperparameters"
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("cccc"),
+               escape=F, linesep="",
+               caption = caption_curr)
+tab_curr <- kable_styling(tab_curr, font_size=16, full_width =F)
+
+tab_curr
+
+```
+
+
+---
+
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 1 - ADAS Boosted Trajectories</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+adas_plot <- readRDS(paste0(mvtboost.dir, "mvtboost_adas_eval_plots"))
+
+adas_eval <- readRDS(paste0(mvtboost.dir, "mvtboost_adas_holdout_eval"))
+
+boot_curr <- boot_dat[["mvtboost"]]
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_adas_rebuild(adas_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_adas_rebuild(adas_plot[[1]]$diff$data)
+
+```
+
+]
+
+.pull-right[
+<div style="margin-top: -20px"> </div>
+```{r, echo=F}
+#tab_curr_base <- table_proc_cont(rbind(adas_eval[[1]]$Group, adas_eval[[1]]$All))
+tab_curr_base <- table_proc_cont(rbind(adas_eval[[1]]$Group, adas_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+```
+<div style="margin-top: 10px"> </div>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$adas, adas_eval[[1]]$All, adas_ref[[1]]$All, boot_ref[["adas"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = "Across all times"
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+
+]
+
+---
+
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 1 - ADAS Boosted Forecasting</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+adas_plot <- readRDS(paste0(mvtboost.dir, "mvtboost_adas_eval_plots_obs"))
+
+adas_eval <- readRDS(paste0(mvtboost.dir, "mvtboost_adas_holdout_eval_obs"))
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_adas_rebuild(adas_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_adas_rebuild(adas_plot[[1]]$diff$data)
+
+```
+
+]
+
+.pull-right[
+<div style="margin-bottom: 10px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cont(rbind(adas_eval[[1]]$Group, adas_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<br>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$adas_obs, adas_eval[[1]]$All, adas_ref_obs[[1]]$All, boot_ref[["adas_obs"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = "Across all times"
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+
+]
+
+
+---
+
+
+
+
+
+
+
+
+class: center, middle
+
+#Aim 1 Results 
+#Ensemble Methods
+#CDR Impairment
+
+
+
+---
+
+
+## Aim 1 - Ensemble CDR Summary
+
+<div style="text-align: center; font-size: 32px"><b>Whole Subject Trajectories</b></div>
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+cdr_ref_eval <- cdr_ref <- readRDS(paste0(merf.dir, "refmod_cdr_holdout_eval"))
+cdr_ref_eval_obs <- cdr_ref_obs <- readRDS(paste0(merf.dir, "refmod_cdr_holdout_eval_obs_noRE"))
+
+cdr_merf_eval <- readRDS(paste0(merf.dir, "merf_cdr_holdout_eval"))
+cdr_merf_eval_obs <- readRDS(paste0(merf.dir, "merf_cdr_holdout_eval_obs"))
+cdr_glmer_eval <- readRDS(paste0(glmer_ref.dir, "glmertree_ref_cdr_holdout_eval"))
+cdr_glmer_eval_obs <- readRDS(paste0(glmer_ref.dir, "glmertree_ref_cdr_holdout_eval_obs"))
+cdr_bagged_eval <- readRDS(paste0(glmer.dir, "glmertree_bagged_cdr_holdout_eval"))
+cdr_bagged_eval_obs <- readRDS(paste0(glmer.dir, "glmertree_bagged_cdr_holdout_eval_obs"))
+cdr_mvtboost_eval <- readRDS(paste0(mvtboost.dir, "mvtboost_cdr_holdout_eval"))
+cdr_mvtboost_eval_obs <- readRDS(paste0(mvtboost.dir, "mvtboost_cdr_holdout_eval_obs"))
+
+list_cdr <- list(cdr_merf_eval, cdr_glmer_eval, cdr_bagged_eval, cdr_mvtboost_eval)
+list_cdr_obs <- list(cdr_merf_eval_obs, cdr_glmer_eval_obs, cdr_bagged_eval_obs, cdr_mvtboost_eval_obs)
+
+cdr_summ <- table_summ_build(list_cdr, cdr_ref)
+tab_curr <- 
+  knitr::kable(cdr_summ, "html",
+               align = c("l",rep("c", ncol(cdr_summ)-1)),
+               escape=F, linesep="")
+#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr
+```
+
+<br>
+
+<div style="text-align: center; font-size: 32px"><b>Final Observation Forecasting</b></div>
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+cdr_summ_obs <- table_summ_build(list_cdr_obs, cdr_ref_obs)
+tab_curr <- 
+  knitr::kable(cdr_summ_obs, "html",
+               align = c("l",rep("c", ncol(cdr_summ_obs)-1)),
+               escape=F, linesep="")
+#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr
+```
+
+---
+
+<h2 style="font-size: 40px; margin-top: 15px; margin-bottom: 25px">Aim 1 - CDR MERF Hyperparameters</h2>
+
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+
+cdr_hyper <- readRDS(paste0(merf.dir, "merf_cdr_hyper_results"))
+
+
+
+```
+
+
+```{r, echo=F, fig.width=9, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+cdr_hyper_curr <- plot_hyper_rebuild(cdr_hyper$plot$data, size_shift = FALSE)
+cdr_hyper_curr
+```
+<div style="margin-top: 0px; margin-bottom: 0px"> </div>
+```{r, echo=F}
+tab_curr_base <- tab_proc_hyper(cdr_hyper$best[,-1])
+caption_curr <- "CDR MERF Hyperparameters"
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("cccc"),
+               escape=F, linesep="",
+               caption = caption_curr)
+tab_curr <- kable_styling(tab_curr, font_size=16, full_width =F)
+
+tab_curr
+
+```
+
+
+---
+
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 1 - CDR MERF Trajectories</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+cdr_plot <- readRDS(paste0(merf.dir, "merf_cdr_eval_plots"))
+
+cdr_eval <- readRDS(paste0(merf.dir, "merf_cdr_holdout_eval"))
+
+boot_curr <- boot_dat[["merf"]]
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+
+```
+
+]
+
+.pull-right[
+<div style="margin-bottom: 10px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cat(rbind(cdr_eval[[1]]$Group, cdr_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<br>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$cdr, cdr_eval[[1]]$All, cdr_ref[[1]]$All, boot_ref[["cdr"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = tab_boot_base[["NRI"]]
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+`r tab_boot_base[["NRI"]]`
+]
+
+
+---
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 1 - CDR MERF Forecasting</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+cdr_plot <- readRDS(paste0(merf.dir, "merf_cdr_eval_plots_obs"))
+
+cdr_eval <- readRDS(paste0(merf.dir, "merf_cdr_holdout_eval_obs"))
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+
+```
+
+]
+
+.pull-right[
+<div style="margin-bottom: 15px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cat(rbind(cdr_eval[[1]]$Group, cdr_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<br>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$cdr_obs, cdr_eval[[1]]$All, cdr_ref_obs[[1]]$All, boot_ref[["cdr_obs"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = tab_boot_base[["NRI"]]
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+`r tab_boot_base[["NRI"]]`
+]
+
+---
+
+
+
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 1 - CDR GLMM Trajectories</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+cdr_plot <- readRDS(paste0(glmer_ref.dir, "glmertree_ref_cdr_eval_plots"))
+
+cdr_eval <- readRDS(paste0(glmer_ref.dir, "glmertree_ref_cdr_holdout_eval"))
+
+boot_curr <- boot_dat[["glmertree_ref"]]
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+
+```
+
+]
+
+.pull-right[
+<div style="margin-bottom: 10px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cat(rbind(cdr_eval[[1]]$Group, cdr_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<br>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$cdr, cdr_eval[[1]]$All, cdr_ref[[1]]$All, boot_ref[["cdr"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = tab_boot_base[["NRI"]]
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+`r tab_boot_base[["NRI"]]`
+]
+
+
+---
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 1 - CDR GLMM Forecasting</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+cdr_plot <- readRDS(paste0(merf.dir, "merf_cdr_eval_plots_obs"))
+
+cdr_eval <- readRDS(paste0(merf.dir, "merf_cdr_holdout_eval_obs"))
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+
+```
+
+]
+
+.pull-right[
+<div style="margin-bottom: 15px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cat(rbind(cdr_eval[[1]]$Group, cdr_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<br>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$cdr_obs, cdr_eval[[1]]$All, cdr_ref_obs[[1]]$All, boot_ref[["cdr_obs"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = tab_boot_base[["NRI"]]
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+`r tab_boot_base[["NRI"]]`
+]
+
+
+
+
+
+
+
+
+---
+
+<h2 style="font-size: 40px; margin-top: 15px; margin-bottom: 25px">Aim 1 - CDR Bagged Hyperparameters</h2>
+
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+
+cdr_hyper <- readRDS(paste0(glmer.dir, "glmertree_bagged_cdr_hyper_results"))
+
+
+
+```
+
+
+```{r, echo=F, fig.width=9, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+cdr_hyper_curr <- plot_hyper_rebuild(cdr_hyper$plot$data)
+GeomBar$draw_key <- draw_key_polygon3
+cdr_hyper_curr; GeomBar$draw_key <- draw_key_orig
+```
+<div style="margin-top: 0px; margin-bottom: 0px"> </div>
+```{r, echo=F}
+tab_curr_base <- tab_proc_hyper(cdr_hyper$best[,-1])
+caption_curr <- "CDR Bagged Hyperparameters"
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("cccc"),
+               escape=F, linesep="",
+               caption = caption_curr)
+tab_curr <- kable_styling(tab_curr, font_size=16, full_width =F)
+
+tab_curr
+
+```
+
+
+---
+
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 1 - CDR Bagged Trajectories</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+cdr_plot <- readRDS(paste0(glmer.dir, "glmertree_bagged_cdr_eval_plots"))
+
+cdr_eval <- readRDS(paste0(glmer.dir, "glmertree_bagged_cdr_holdout_eval"))
+
+boot_curr <- boot_dat[["glmertree_bagged"]]
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+
+```
+
+]
+
+.pull-right[
+<div style="margin-bottom: 10px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cat(rbind(cdr_eval[[1]]$Group, cdr_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<br>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$cdr, cdr_eval[[1]]$All, cdr_ref[[1]]$All, boot_ref[["cdr"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = tab_boot_base[["NRI"]]
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+`r tab_boot_base[["NRI"]]`
+]
+
+
+---
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 1 - CDR Bagged Forecasting</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+cdr_plot <- readRDS(paste0(glmer.dir, "glmertree_bagged_cdr_eval_plots_obs"))
+
+cdr_eval <- readRDS(paste0(glmer.dir, "glmertree_bagged_cdr_holdout_eval_obs"))
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+
+```
+
+]
+
+.pull-right[
+<div style="margin-bottom: 15px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cat(rbind(cdr_eval[[1]]$Group, cdr_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<br>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$cdr_obs, cdr_eval[[1]]$All, cdr_ref_obs[[1]]$All, boot_ref[["cdr_obs"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = tab_boot_base[["NRI"]]
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+`r tab_boot_base[["NRI"]]`
+]
+
+
+
+
+
+
+
+
+
+---
+
+<h2 style="font-size: 40px; margin-top: 15px; margin-bottom: 25px">Aim 1 - CDR Boosted Hyperparameters</h2>
+
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+
+cdr_hyper <- readRDS(paste0(mvtboost.dir, "mvtboost_cdr_hyper_results"))
+
+
+
+```
+
+
+```{r, echo=F, fig.width=9, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+cdr_hyper_curr <- plot_hyper_rebuild(cdr_hyper$plot$data)
+GeomBar$draw_key <- draw_key_polygon3
+cdr_hyper_curr; GeomBar$draw_key <- draw_key_orig
+```
+<div style="margin-top: 0px; margin-bottom: 0px"> </div>
+```{r, echo=F}
+tab_curr_base <- tab_proc_hyper(cdr_hyper$best[,-1])
+caption_curr <- "CDR Boosted Hyperparameters"
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("cccc"),
+               escape=F, linesep="",
+               caption = caption_curr)
+tab_curr <- kable_styling(tab_curr, font_size=16, full_width =F)
+
+tab_curr
+
+```
+
+
+---
+
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 1 - CDR Boosted Trajectories</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+cdr_plot <- readRDS(paste0(mvtboost.dir, "mvtboost_cdr_eval_plots"))
+
+cdr_eval <- readRDS(paste0(mvtboost.dir, "mvtboost_cdr_holdout_eval"))
+
+boot_curr <- boot_dat[["mvtboost"]]
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+
+```
+
+]
+
+.pull-right[
+<div style="margin-bottom: 10px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cat(rbind(cdr_eval[[1]]$Group, cdr_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<br>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$cdr, cdr_eval[[1]]$All, cdr_ref[[1]]$All, boot_ref[["cdr"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = tab_boot_base[["NRI"]]
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+`r tab_boot_base[["NRI"]]`
+]
+
+
+---
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 1 - CDR Boosted Forecasting</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+cdr_plot <- readRDS(paste0(mvtboost.dir, "mvtboost_cdr_eval_plots_obs"))
+
+cdr_eval <- readRDS(paste0(mvtboost.dir, "mvtboost_cdr_holdout_eval_obs"))
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+
+```
+
+]
+
+.pull-right[
+<div style="margin-bottom: 15px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cat(rbind(cdr_eval[[1]]$Group, cdr_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<br>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$cdr_obs, cdr_eval[[1]]$All, cdr_ref_obs[[1]]$All, boot_ref[["cdr_obs"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = tab_boot_base[["NRI"]]
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+`r tab_boot_base[["NRI"]]`
+]
+
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class: center, middle
+
+#Aim 2 Results 
+#Neural Network Methods
+#ADAS-Cog Score
+
+
+---
+
+## Aim 2 - Neural Net ADAS Summary
+
+<div style="text-align: center; font-size: 32px"><b>Whole Subject Trajectories</b></div>
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+nn.dir <- paste0(dir.base, "Neural Nets/_targets/objects/")
+
+adas_fnn_eval <- readRDS(paste0(nn.dir, "fnn_adas_holdout_eval"))
+adas_fnn_eval_obs <- readRDS(paste0(nn.dir, "fnn_adas_holdout_eval_obs"))
+adas_cnn_eval <- readRDS(paste0(nn.dir, "cnn_adas_holdout_eval"))
+adas_cnn_eval_obs <- readRDS(paste0(nn.dir, "cnn_adas_holdout_eval_obs"))
+adas_lstm_eval <- readRDS(paste0(nn.dir, "lstm_adas_holdout_eval"))
+adas_lstm_eval_obs <- readRDS(paste0(nn.dir, "lstm_adas_holdout_eval_obs"))
+
+list_adas <- list(adas_fnn_eval, adas_cnn_eval, adas_lstm_eval)
+list_adas_obs <- list(adas_fnn_eval_obs, adas_cnn_eval_obs, adas_lstm_eval_obs)
+
+adas_summ <- table_summ_build(list_adas, adas_ref)
+tab_curr <- 
+  knitr::kable(adas_summ, "html",
+               align = c("l",rep("c", ncol(adas_summ)-1)),
+               escape=F, linesep="")
+#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr
+```
+
+<br>
+
+<div style="text-align: center; font-size: 32px"><b>Final Observation Forecasting:</b></div>
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+adas_summ_obs <- table_summ_build(list_adas_obs, adas_eval_obs)
+tab_curr <- 
+  knitr::kable(adas_summ_obs, "html",
+               align = c("l",rep("c", ncol(adas_summ_obs)-1)),
+               escape=F, linesep="")
+#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr
+
+```
+---
+
+<h2 style="font-size: 40px; margin-top: 15px; margin-bottom: 25px">Aim 2 - ADAS FNN Hyperparameters</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+
+adas_hyper <- readRDS(paste0(nn.dir, "fnn_adas_hyper_results"))
+
+
+
+```
+
+
+```{r, echo=F, fig.width=9, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+adas_hyper_curr <- plot_hyper_rebuild(adas_hyper$plot$data, shift_val = 5)
+GeomBar$draw_key <- draw_key_polygon3
+adas_hyper_curr; GeomBar$draw_key <- draw_key_orig
+```
+$~$
+```{r, echo=F}
+tab_curr_base <- tab_proc_hyper(adas_hyper$best[,-1])
+caption_curr <- "ADAS FNN Hyperparameters"
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("cccc"),
+               escape=F, linesep="",
+               caption = caption_curr)
+tab_curr <- kable_styling(tab_curr, font_size=16, full_width =F)
+
+tab_curr
+
+```
+
+
+
+---
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 2 - ADAS FNN Trajectories</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+adas_plot <- readRDS(paste0(nn.dir, "fnn_adas_eval_plots"))
+
+adas_eval <- readRDS(paste0(nn.dir, "fnn_adas_holdout_eval"))
+
+boot_curr <- boot_dat[["fnn"]]
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_adas_rebuild(adas_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_adas_rebuild(adas_plot[[1]]$diff$data)
+
+```
+
+]
+
+.pull-right[
+<div style="margin-top: -20px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cont(rbind(adas_eval[[1]]$Group, adas_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<div style="margin-top: 10px"> </div>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$adas, adas_eval[[1]]$All, adas_ref[[1]]$All, boot_ref[["adas"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = "Across all times"
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+
+]
+
+---
+
+
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 2 - ADAS FNN Forecasting</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+adas_plot <- readRDS(paste0(nn.dir, "fnn_adas_eval_plots_obs"))
+
+adas_eval <- readRDS(paste0(nn.dir, "fnn_adas_holdout_eval_obs"))
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_adas_rebuild(adas_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_adas_rebuild(adas_plot[[1]]$diff$data)
+
+```
+
+]
+
+.pull-right[
+<div style="margin-bottom: 10px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cont(rbind(adas_eval[[1]]$Group, adas_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<br>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$adas_obs, adas_eval[[1]]$All, adas_ref_obs[[1]]$All, boot_ref[["adas_obs"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = "Across all times"
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+
+]
+
+
+
+
+
+
+
+---
+
+<h2 style="font-size: 40px; margin-top: 15px; margin-bottom: 25px">Aim 2 - ADAS 1D CNN Hyperparameters</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+
+adas_hyper <- readRDS(paste0(nn.dir, "cnn_adas_hyper_results"))
+
+
+
+```
+
+
+```{r, echo=F, fig.width=9, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+adas_hyper_curr <- plot_hyper_rebuild(adas_hyper$plot$data)
+GeomBar$draw_key <- draw_key_polygon3
+adas_hyper_curr; GeomBar$draw_key <- draw_key_orig
+```
+$~$
+```{r, echo=F}
+tab_curr_base <- tab_proc_hyper(adas_hyper$best[,-1])
+caption_curr <- "ADAS 1D CNN Hyperparameters"
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("cccc"),
+               escape=F, linesep="",
+               caption = caption_curr)
+tab_curr <- kable_styling(tab_curr, font_size=16, full_width =F)
+
+tab_curr
+
+```
+
+
+
+---
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 2 - ADAS 1D CNN Trajectories</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+adas_plot <- readRDS(paste0(nn.dir, "cnn_adas_eval_plots"))
+
+adas_eval <- readRDS(paste0(nn.dir, "cnn_adas_holdout_eval"))
+
+boot_curr <- boot_dat[["cnn"]]
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_adas_rebuild(adas_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_adas_rebuild(adas_plot[[1]]$diff$data)
+
+```
+
+]
+
+.pull-right[
+<div style="margin-top: -20px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cont(rbind(adas_eval[[1]]$Group, adas_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<div style="margin-top: 10px"> </div>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$adas, adas_eval[[1]]$All, adas_ref[[1]]$All, boot_ref[["adas"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = "Across all times"
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+
+]
+
+---
+
+
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 2 - ADAS 1D CNN Forecasting</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+adas_plot <- readRDS(paste0(nn.dir, "cnn_adas_eval_plots_obs"))
+
+adas_eval <- readRDS(paste0(nn.dir, "cnn_adas_holdout_eval_obs"))
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_adas_rebuild(adas_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_adas_rebuild(adas_plot[[1]]$diff$data)
+
+```
+
+]
+
+.pull-right[
+<div style="margin-bottom: 10px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cont(rbind(adas_eval[[1]]$Group, adas_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<br>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$adas_obs, adas_eval[[1]]$All, adas_ref_obs[[1]]$All, boot_ref[["adas_obs"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = "Across all times"
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+
+]
+
+
+
+
+
+
+---
+
+<h2 style="font-size: 40px; margin-top: 15px; margin-bottom: 25px">Aim 2 - ADAS LSTM Hyperparameters</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+
+adas_hyper <- readRDS(paste0(nn.dir, "LSTM_adas_hyper_results"))
+
+
+
+```
+
+
+```{r, echo=F, fig.width=9, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+adas_hyper_curr <- plot_hyper_rebuild(adas_hyper$plot$data)
+GeomBar$draw_key <- draw_key_polygon3
+adas_hyper_curr; GeomBar$draw_key <- draw_key_orig
+```
+$~$
+```{r, echo=F}
+tab_curr_base <- tab_proc_hyper(adas_hyper$best[,-1])
+caption_curr <- "ADAS LSTM Hyperparameters"
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("cccc"),
+               escape=F, linesep="",
+               caption = caption_curr)
+tab_curr <- kable_styling(tab_curr, font_size=16, full_width =F)
+
+tab_curr
+
+```
+
+
+
+---
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 2 - ADAS LSTM Trajectories</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+adas_plot <- readRDS(paste0(nn.dir, "lstm_adas_eval_plots"))
+
+adas_eval <- readRDS(paste0(nn.dir, "lstm_adas_holdout_eval"))
+
+boot_curr <- boot_dat[["lstm"]]
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_adas_rebuild(adas_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_adas_rebuild(adas_plot[[1]]$diff$data)
+
+```
+
+]
+
+.pull-right[
+<div style="margin-top: -20px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cont(rbind(adas_eval[[1]]$Group, adas_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<div style="margin-top: 10px"> </div>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$adas, adas_eval[[1]]$All, adas_ref[[1]]$All, boot_ref[["adas"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = "Across all times"
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+
+]
+
+---
+
+
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 2 - ADAS LSTM Forecasting</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+adas_plot <- readRDS(paste0(nn.dir, "lstm_adas_eval_plots_obs"))
+
+adas_eval <- readRDS(paste0(nn.dir, "lstm_adas_holdout_eval_obs"))
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_adas_rebuild(adas_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_adas_rebuild(adas_plot[[1]]$diff$data)
+
+```
+
+]
+
+.pull-right[
+<div style="margin-bottom: 10px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cont(rbind(adas_eval[[1]]$Group, adas_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<br>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$adas_obs, adas_eval[[1]]$All, adas_ref_obs[[1]]$All, boot_ref[["adas_obs"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = "Across all times"
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+
+]
+
+
+---
+
+
+
+
+
+
+
+
+
+
+class: center, middle
+
+#Aim 2 Results 
+#Neural Net Methods
+#CDR Impairment
+
+
+---
+
+## Aim 2 - Neural Net CDR Summary
+
+<div style="text-align: center; font-size: 32px"><b>Whole Subject Trajectories</b></div>
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+
+cdr_fnn_eval <- readRDS(paste0(nn.dir, "fnn_cdr_holdout_eval"))
+cdr_fnn_eval_obs <- readRDS(paste0(nn.dir, "fnn_cdr_holdout_eval_obs"))
+cdr_cnn_eval <- readRDS(paste0(nn.dir, "cnn_cdr_holdout_eval"))
+cdr_cnn_eval_obs <- readRDS(paste0(nn.dir, "cnn_cdr_holdout_eval_obs"))
+cdr_lstm_eval <- readRDS(paste0(nn.dir, "lstm_cdr_holdout_eval"))
+cdr_lstm_eval_obs <- readRDS(paste0(nn.dir, "lstm_cdr_holdout_eval_obs"))
+
+list_cdr <- list(cdr_fnn_eval, cdr_cnn_eval, cdr_lstm_eval)
+list_cdr_obs <- list(cdr_fnn_eval_obs, cdr_cnn_eval_obs, cdr_lstm_eval_obs)
+
+cdr_summ <- table_summ_build(list_cdr, cdr_ref)
+tab_curr <- 
+  knitr::kable(cdr_summ, "html",
+               align = c("l",rep("c", ncol(cdr_summ)-1)),
+               escape=F, linesep="")
+#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr
+```
+
+<br>
+
+<div style="text-align: center; font-size: 32px"><b>Final Observation Forecasting:</b></div>
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+cdr_summ_obs <- table_summ_build(list_cdr_obs, cdr_eval_obs)
+tab_curr <- 
+  knitr::kable(cdr_summ_obs, "html",
+               align = c("l",rep("c", ncol(cdr_summ_obs)-1)),
+               escape=F, linesep="")
+#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr
+
+```
+
+
+
+
+
+---
+
+<h2 style="font-size: 40px; margin-top: 15px; margin-bottom: 25px">Aim 2 - CDR FNN Hyperparameters</h2>
+
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+
+cdr_hyper <- readRDS(paste0(nn.dir, "fnn_cdr_hyper_results"))
+
+
+
+```
+
+
+```{r, echo=F, fig.width=9, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+cdr_hyper_curr <- plot_hyper_rebuild(cdr_hyper$plot$data, shift_val = 5)
+GeomBar$draw_key <- draw_key_polygon3
+cdr_hyper_curr; GeomBar$draw_key <- draw_key_orig
+```
+<div style="margin-top: 0px; margin-bottom: 0px"> </div>
+```{r, echo=F}
+tab_curr_base <- tab_proc_hyper(cdr_hyper$best[,-1])
+caption_curr <- "CDR FNN Hyperparameters"
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("cccc"),
+               escape=F, linesep="",
+               caption = caption_curr)
+tab_curr <- kable_styling(tab_curr, font_size=16, full_width =F)
+
+tab_curr
+
+```
+
+
+---
+
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 2 - CDR FNN Trajectories</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+cdr_plot <- readRDS(paste0(nn.dir, "fnn_cdr_eval_plots"))
+
+cdr_eval <- readRDS(paste0(nn.dir, "fnn_cdr_holdout_eval"))
+
+boot_curr <- boot_dat[["fnn"]]
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+
+```
+
+]
+
+.pull-right[
+<div style="margin-bottom: 10px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cat(rbind(cdr_eval[[1]]$Group, cdr_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<br>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$cdr, cdr_eval[[1]]$All, cdr_ref[[1]]$All, boot_ref[["cdr"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = tab_boot_base[["NRI"]]
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+`r tab_boot_base[["NRI"]]`
+]
+
+
+---
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 2 - CDR FNN Forecasting</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+cdr_plot <- readRDS(paste0(nn.dir, "fnn_cdr_eval_plots_obs"))
+
+cdr_eval <- readRDS(paste0(nn.dir, "fnn_cdr_holdout_eval_obs"))
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+
+```
+
+]
+
+.pull-right[
+<div style="margin-bottom: 15px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cat(rbind(cdr_eval[[1]]$Group, cdr_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<br>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$cdr_obs, cdr_eval[[1]]$All, cdr_ref_obs[[1]]$All, boot_ref[["cdr_obs"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = tab_boot_base[["NRI"]]
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+`r tab_boot_base[["NRI"]]`
+]
+
+
+
+
+---
+
+<h2 style="font-size: 40px; margin-top: 15px; margin-bottom: 25px">Aim 2 - CDR 1D CNN Hyperparameters</h2>
+
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+
+cdr_hyper <- readRDS(paste0(nn.dir, "cnn_cdr_hyper_results"))
+
+
+
+```
+
+
+```{r, echo=F, fig.width=9, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+cdr_hyper_curr <- plot_hyper_rebuild(cdr_hyper$plot$data)
+GeomBar$draw_key <- draw_key_polygon3
+cdr_hyper_curr; GeomBar$draw_key <- draw_key_orig
+```
+<div style="margin-top: 0px; margin-bottom: 0px"> </div>
+```{r, echo=F}
+tab_curr_base <- tab_proc_hyper(cdr_hyper$best[,-1])
+caption_curr <- "CDR 1D CNN Hyperparameters"
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("cccc"),
+               escape=F, linesep="",
+               caption = caption_curr)
+tab_curr <- kable_styling(tab_curr, font_size=16, full_width =F)
+
+tab_curr
+
+```
+
+
+---
+
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 2 - CDR 1D CNN Trajectories</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+cdr_plot <- readRDS(paste0(nn.dir, "cnn_cdr_eval_plots"))
+
+cdr_eval <- readRDS(paste0(nn.dir, "cnn_cdr_holdout_eval"))
+
+boot_curr <- boot_dat[["cnn"]]
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+
+```
+
+]
+
+.pull-right[
+<div style="margin-bottom: 10px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cat(rbind(cdr_eval[[1]]$Group, cdr_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<br>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$cdr, cdr_eval[[1]]$All, cdr_ref[[1]]$All, boot_ref[["cdr"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = tab_boot_base[["NRI"]]
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+`r tab_boot_base[["NRI"]]`
+]
+
+
+---
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 2 - CDR 1D CNN Forecasting</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+cdr_plot <- readRDS(paste0(nn.dir, "cnn_cdr_eval_plots_obs"))
+
+cdr_eval <- readRDS(paste0(nn.dir, "cnn_cdr_holdout_eval_obs"))
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+
+```
+
+]
+
+.pull-right[
+<div style="margin-bottom: 15px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cat(rbind(cdr_eval[[1]]$Group, cdr_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<br>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$cdr_obs, cdr_eval[[1]]$All, cdr_ref_obs[[1]]$All, boot_ref[["cdr_obs"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = tab_boot_base[["NRI"]]
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+`r tab_boot_base[["NRI"]]`
+]
+
+
+
+
+
+---
+
+<h2 style="font-size: 40px; margin-top: 15px; margin-bottom: 25px">Aim 2 - CDR LSTM Hyperparameters</h2>
+
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+
+cdr_hyper <- readRDS(paste0(nn.dir, "lstm_cdr_hyper_results"))
+
+
+
+```
+
+
+```{r, echo=F, fig.width=9, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+cdr_hyper_curr <- plot_hyper_rebuild(cdr_hyper$plot$data)
+GeomBar$draw_key <- draw_key_polygon3
+cdr_hyper_curr; GeomBar$draw_key <- draw_key_orig
+```
+<div style="margin-top: 0px; margin-bottom: 0px"> </div>
+```{r, echo=F}
+tab_curr_base <- tab_proc_hyper(cdr_hyper$best[,-1])
+caption_curr <- "CDR LSTM Hyperparameters"
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("cccc"),
+               escape=F, linesep="",
+               caption = caption_curr)
+tab_curr <- kable_styling(tab_curr, font_size=16, full_width =F)
+
+tab_curr
+
+```
+
+
+---
+
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 2 - CDR LSTM Trajectories</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+cdr_plot <- readRDS(paste0(nn.dir, "lstm_cdr_eval_plots"))
+
+cdr_eval <- readRDS(paste0(nn.dir, "lstm_cdr_holdout_eval"))
+
+boot_curr <- boot_dat[["lstm"]]
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+
+```
+
+]
+
+.pull-right[
+<div style="margin-bottom: 10px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cat(rbind(cdr_eval[[1]]$Group, cdr_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<br>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$cdr, cdr_eval[[1]]$All, cdr_ref[[1]]$All, boot_ref[["cdr"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = tab_boot_base[["NRI"]]
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+`r tab_boot_base[["NRI"]]`
+]
+
+
+---
+
+<h2 style="margin-top: 15px; margin-bottom: 25px">Aim 2 - CDR LSTM Forecasting</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+cdr_plot <- readRDS(paste0(nn.dir, "lstm_cdr_eval_plots_obs"))
+
+cdr_eval <- readRDS(paste0(nn.dir, "lstm_cdr_holdout_eval_obs"))
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+
+```
+
+]
+
+.pull-right[
+<div style="margin-bottom: 15px"> </div>
+```{r, echo=F}
+tab_curr_base <- table_proc_cat(rbind(cdr_eval[[1]]$Group, cdr_eval[[1]]$All))
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, nrow(tab_curr_base), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=14, full_width =F)
+
+tab_curr
+
+```
+<br>
+```{r, echo=F}
+tab_boot_base <- tab_proc_boot(boot_curr$cdr_obs, cdr_eval[[1]]$All, cdr_ref_obs[[1]]$All, boot_ref[["cdr_obs"]])
+tab_boot <- 
+  knitr::kable(tab_boot_base[["tab"]], "html",
+               align = rep("c",6),
+               escape=F, linesep="",
+               #caption = tab_boot_base[["NRI"]]
+               )
+tab_boot <- kable_styling(tab_boot, font_size=14, full_width =F)
+
+tab_boot
+
+```
+`r tab_boot_base[["NRI"]]`
+]
+
+---
+
+
+
+
+
+
+
+
+
+
+
+
+class: center, middle
+
+#Aims 1 & 2
+#Cross Model Comparisons
+#ADAS-Cog Scores
+
+
+---
+
+
+<h2 style="font-size: 40px; margin-top: 0px; margin-bottom: 5px">ML/SL Comparison - ADAS Regression</h2>
+
+```{r, echo=F}
+comp_curr_base <- comp_table[[1]]$RMSE
+caption_curr <- "RMSE - Whole Trajectories"
+
+#comp_curr_base <- remake_comp_table(comp_curr_base)
+
+comp_curr <- 
+  knitr::kable(comp_curr_base, "html", 
+               align = rep("c", ncol(comp_curr_base)),
+               escape = FALSE, linesep = "",
+               caption = paste0("<div style=\"color:black; font-size:32px\">", caption_curr, "</div>")
+               )
+comp_curr <- row_spec(comp_curr, c(1:nrow(comp_curr_base)), extra_css = "vertical-align: middle !important;")
+comp_curr <- column_spec(comp_curr, 1, bold=T)
+comp_curr <- kable_styling(comp_curr, font_size=16, full_width = FALSE)
+
+comp_curr
+```
+
+
+
+---
+
+
+<h2 style="font-size: 40px; margin-top: 0px; margin-bottom: 5px">ML/SL Comparison - ADAS Regression</h2>
+
+```{r, echo=F}
+comp_curr_base <- comp_table[[3]]$RMSE
+caption_curr <- "RMSE - Observation Forecasts"
+
+#comp_curr_base <- remake_comp_table(comp_curr_base)
+
+comp_curr <- 
+  knitr::kable(comp_curr_base, "html", 
+               align = rep("c", ncol(comp_curr_base)),
+               escape = FALSE, linesep = "",
+               caption = paste0("<div style=\"color:black; font-size:32px\">", caption_curr, "</div>")
+               )
+comp_curr <- row_spec(comp_curr, c(1:nrow(comp_curr_base)), extra_css = "vertical-align: middle !important;")
+comp_curr <- column_spec(comp_curr, 1, bold=T)
+comp_curr <- kable_styling(comp_curr, font_size=16, full_width = FALSE)
+
+comp_curr
+```
+
+
+---
+
+
+
+
+<h2 style="font-size: 40px; margin-top: 0px; margin-bottom: 5px">ML/SL Comparison - ADAS Regression</h2>
+
+```{r, echo=F}
+comp_curr_base <- comp_table[[1]]$`Median AE`
+caption_curr <- "Median AE - Whole Trajectories"
+
+#comp_curr_base <- remake_comp_table(comp_curr_base)
+
+comp_curr <- 
+  knitr::kable(comp_curr_base, "html", 
+               align = rep("c", ncol(comp_curr_base)),
+               escape = FALSE, linesep = "",
+               caption = paste0("<div style=\"color:black; font-size:32px\">", caption_curr, "</div>")
+               )
+comp_curr <- row_spec(comp_curr, c(1:nrow(comp_curr_base)), extra_css = "vertical-align: middle !important;")
+comp_curr <- column_spec(comp_curr, 1, bold=T)
+comp_curr <- kable_styling(comp_curr, font_size=16, full_width = FALSE)
+
+comp_curr
+```
+
+
+
+---
+
+
+<h2 style="font-size: 40px; margin-top: 0px; margin-bottom: 5px">ML/SL Comparison - ADAS Regression</h2>
+
+```{r, echo=F}
+comp_curr_base <- comp_table[[3]]$`Median AE`
+caption_curr <- "Median AE - Observation Forecasts"
+
+#comp_curr_base <- remake_comp_table(comp_curr_base)
+
+comp_curr <- 
+  knitr::kable(comp_curr_base, "html", 
+               align = rep("c", ncol(comp_curr_base)),
+               escape = FALSE, linesep = "",
+               caption = paste0("<div style=\"color:black; font-size:32px\">", caption_curr, "</div>")
+               )
+comp_curr <- row_spec(comp_curr, c(1:nrow(comp_curr_base)), extra_css = "vertical-align: middle !important;")
+comp_curr <- column_spec(comp_curr, 1, bold=T)
+comp_curr <- kable_styling(comp_curr, font_size=16, full_width = FALSE)
+
+comp_curr
+```
+
+
+
+---
+
+
+<h2 style="font-size: 40px; margin-top: 0px; margin-bottom: 5px">ML/SL Comparison - ADAS Regression</h2>
+
+```{r, echo=F}
+comp_curr_base <- comp_table[[1]]$Bias
+caption_curr <- "Bias - Whole Trajectories"
+
+#comp_curr_base <- remake_comp_table(comp_curr_base)
+
+comp_curr <- 
+  knitr::kable(comp_curr_base, "html", 
+               align = rep("c", ncol(comp_curr_base)),
+               escape = FALSE, linesep = "",
+               caption = paste0("<div style=\"color:black; font-size:32px\">", caption_curr, "</div>")
+               )
+comp_curr <- row_spec(comp_curr, c(1:nrow(comp_curr_base)), extra_css = "vertical-align: middle !important;")
+comp_curr <- column_spec(comp_curr, 1, bold=T)
+comp_curr <- kable_styling(comp_curr, font_size=16, full_width = FALSE)
+
+comp_curr
+```
+
+
+
+---
+
+
+<h2 style="font-size: 40px; margin-top: 0px; margin-bottom: 5px">ML/SL Comparison - ADAS Regression</h2>
+
+```{r, echo=F}
+comp_curr_base <- comp_curr_base_orig <- comp_table[[3]]$Bias
+
+caption_curr <- "Bias - Observation Forecasts"
+
+#comp_curr_base <- remake_comp_table(comp_curr_base)
+
+comp_curr <- 
+  knitr::kable(comp_curr_base, "html", 
+               align = rep("c", ncol(comp_curr_base)),
+               escape = FALSE, linesep = "",
+               caption = paste0("<div style=\"color:black; font-size:32px\">", caption_curr, "</div>")
+               )
+comp_curr <- row_spec(comp_curr, c(1:nrow(comp_curr_base)), extra_css = "vertical-align: middle !important;")
+comp_curr <- column_spec(comp_curr, 1, bold=T)
+comp_curr <- kable_styling(comp_curr, font_size=16, full_width = FALSE)
+
+comp_curr
+```
+
+
+---
+
+
+<h2 style="font-size: 40px; margin-top: 0px; margin-bottom: 5px">ML/SL Comparison - ADAS Regression</h2>
+
+```{r, echo=F}
+comp_curr_base <- comp_table[[1]]$`AV Bias`
+caption_curr <- "AV Bias - Whole Trajectories"
+
+#comp_curr_base <- remake_comp_table(comp_curr_base)
+
+comp_curr <- 
+  knitr::kable(comp_curr_base, "html", 
+               align = rep("c", ncol(comp_curr_base)),
+               escape = FALSE, linesep = "",
+               caption = paste0("<div style=\"color:black; font-size:32px\">", caption_curr, "</div>")
+               )
+comp_curr <- row_spec(comp_curr, c(1:nrow(comp_curr_base)), extra_css = "vertical-align: middle !important;")
+comp_curr <- column_spec(comp_curr, 1, bold=T)
+comp_curr <- kable_styling(comp_curr, font_size=16, full_width = FALSE)
+
+comp_curr
+```
+
+
+
+---
+
+
+<h2 style="font-size: 40px; margin-top: 0px; margin-bottom: 5px">ML/SL Comparison - ADAS Regression</h2>
+
+```{r, echo=F}
+comp_curr_base <- comp_table[[3]]$`AV Bias`
+caption_curr <- "AV Bias - Observation Forecasts"
+
+#comp_curr_base <- remake_comp_table(comp_curr_base)
+
+comp_curr <- 
+  knitr::kable(comp_curr_base, "html", 
+               align = rep("c", ncol(comp_curr_base)),
+               escape = FALSE, linesep = "",
+               caption = paste0("<div style=\"color:black; font-size:32px\">", caption_curr, "</div>")
+               )
+comp_curr <- row_spec(comp_curr, c(1:nrow(comp_curr_base)), extra_css = "vertical-align: middle !important;")
+comp_curr <- column_spec(comp_curr, 1, bold=T)
+comp_curr <- kable_styling(comp_curr, font_size=16, full_width = FALSE)
+
+comp_curr
+```
+
+
+
+
+
+
+
+
+
+
+---
+
+
+
+class: center, middle
+
+#Aims 1 & 2
+#Cross Model Comparisons
+#CDR Impairment
+
+
+
+---
+
+
+
+<h2 style="font-size: 40px; margin-top: 0px; margin-bottom: 5px">ML/SL Comparison - CDR Classification</h2>
+
+```{r, echo=F}
+comp_curr_base <- comp_table[[2]]$Accuracy
+caption_curr <- "Accuracy - Whole Trajectories"
+
+#comp_curr_base <- remake_comp_table(comp_curr_base)
+
+comp_curr <- 
+  knitr::kable(comp_curr_base, "html", 
+               align = rep("c", ncol(comp_curr_base)),
+               escape = FALSE, linesep = "",
+               caption = paste0("<div style=\"color:black; font-size:32px\">", caption_curr, "</div>")
+               )
+comp_curr <- row_spec(comp_curr, c(1:nrow(comp_curr_base)), extra_css = "vertical-align: middle !important;")
+comp_curr <- column_spec(comp_curr, 1, bold=T)
+comp_curr <- kable_styling(comp_curr, font_size=16, full_width = FALSE)
+
+comp_curr
+```
+
+
+
+---
+
+
+<h2 style="font-size: 40px; margin-top: 0px; margin-bottom: 5px">ML/SL Comparison - CDR Classification</h2>
+
+```{r, echo=F}
+comp_curr_base <- comp_table[[4]]$Accuracy
+caption_curr <- "Accuracy - Observation Forecasts"
+
+#comp_curr_base <- remake_comp_table(comp_curr_base)
+
+comp_curr <- 
+  knitr::kable(comp_curr_base, "html", 
+               align = rep("c", ncol(comp_curr_base)),
+               escape = FALSE, linesep = "",
+               caption = paste0("<div style=\"color:black; font-size:32px\">", caption_curr, "</div>")
+               )
+comp_curr <- row_spec(comp_curr, c(1:nrow(comp_curr_base)), extra_css = "vertical-align: middle !important;")
+comp_curr <- column_spec(comp_curr, 1, bold=T)
+comp_curr <- kable_styling(comp_curr, font_size=16, full_width = FALSE)
+
+comp_curr
+```
+
+
+---
+
+
+<h2 style="font-size: 40px; margin-top: 0px; margin-bottom: 5px">ML/SL Comparison - CDR Classification</h2>
+
+```{r, echo=F}
+comp_curr_base <- comp_table[[2]]$Precision
+caption_curr <- "Precision - Whole Trajectories"
+
+#comp_curr_base <- remake_comp_table(comp_curr_base)
+
+comp_curr <- 
+  knitr::kable(comp_curr_base, "html", 
+               align = rep("c", ncol(comp_curr_base)),
+               escape = FALSE, linesep = "",
+               caption = paste0("<div style=\"color:black; font-size:32px\">", caption_curr, "</div>")
+               )
+comp_curr <- row_spec(comp_curr, c(1:nrow(comp_curr_base)), extra_css = "vertical-align: middle !important;")
+comp_curr <- column_spec(comp_curr, 1, bold=T)
+comp_curr <- kable_styling(comp_curr, font_size=16, full_width = FALSE)
+
+comp_curr
+```
+
+
+
+---
+
+
+<h2 style="font-size: 40px; margin-top: 0px; margin-bottom: 5px">ML/SL Comparison - CDR Classification</h2>
+
+```{r, echo=F}
+comp_curr_base <- comp_table[[4]]$Precision
+caption_curr <- "Precision - Observation Forecasts"
+
+#comp_curr_base <- remake_comp_table(comp_curr_base)
+
+comp_curr <- 
+  knitr::kable(comp_curr_base, "html", 
+               align = rep("c", ncol(comp_curr_base)),
+               escape = FALSE, linesep = "",
+               caption = paste0("<div style=\"color:black; font-size:32px\">", caption_curr, "</div>")
+               )
+comp_curr <- row_spec(comp_curr, c(1:nrow(comp_curr_base)), extra_css = "vertical-align: middle !important;")
+comp_curr <- column_spec(comp_curr, 1, bold=T)
+comp_curr <- kable_styling(comp_curr, font_size=16, full_width = FALSE)
+
+comp_curr
+```
+
+
+---
+
+
+<h2 style="font-size: 40px; margin-top: 0px; margin-bottom: 5px">ML/SL Comparison - CDR Classification</h2>
+
+```{r, echo=F}
+comp_curr_base <- comp_table[[2]]$Recall
+caption_curr <- "Recall - Whole Trajectories"
+
+#comp_curr_base <- remake_comp_table(comp_curr_base)
+
+comp_curr <- 
+  knitr::kable(comp_curr_base, "html", 
+               align = rep("c", ncol(comp_curr_base)),
+               escape = FALSE, linesep = "",
+               caption = paste0("<div style=\"color:black; font-size:32px\">", caption_curr, "</div>")
+               )
+comp_curr <- row_spec(comp_curr, c(1:nrow(comp_curr_base)), extra_css = "vertical-align: middle !important;")
+comp_curr <- column_spec(comp_curr, 1, bold=T)
+comp_curr <- kable_styling(comp_curr, font_size=16, full_width = FALSE)
+
+comp_curr
+```
+
+
+
+---
+
+
+<h2 style="font-size: 40px; margin-top: 0px; margin-bottom: 5px">ML/SL Comparison - CDR Classification</h2>
+
+```{r, echo=F}
+comp_curr_base <- comp_table[[4]]$Recall
+caption_curr <- "Recall - Observation Forecasts"
+
+#comp_curr_base <- remake_comp_table(comp_curr_base)
+
+comp_curr <- 
+  knitr::kable(comp_curr_base, "html", 
+               align = rep("c", ncol(comp_curr_base)),
+               escape = FALSE, linesep = "",
+               caption = paste0("<div style=\"color:black; font-size:32px\">", caption_curr, "</div>")
+               )
+comp_curr <- row_spec(comp_curr, c(1:nrow(comp_curr_base)), extra_css = "vertical-align: middle !important;")
+comp_curr <- column_spec(comp_curr, 1, bold=T)
+comp_curr <- kable_styling(comp_curr, font_size=16, full_width = FALSE)
+
+comp_curr
+```
+
+
+---
+
+
+<h2 style="font-size: 40px; margin-top: 0px; margin-bottom: 5px">ML/SL Comparison - CDR Classification</h2>
+
+```{r, echo=F}
+comp_curr_base <- comp_table[[2]]$`AUC`
+caption_curr <- "AUC - Whole Trajectories"
+
+#comp_curr_base <- remake_comp_table(comp_curr_base)
+
+comp_curr <- 
+  knitr::kable(comp_curr_base, "html", 
+               align = rep("c", ncol(comp_curr_base)),
+               escape = FALSE, linesep = "",
+               caption = paste0("<div style=\"color:black; font-size:32px\">", caption_curr, "</div>")
+               )
+comp_curr <- row_spec(comp_curr, c(1:nrow(comp_curr_base)), extra_css = "vertical-align: middle !important;")
+comp_curr <- column_spec(comp_curr, 1, bold=T)
+comp_curr <- kable_styling(comp_curr, font_size=16, full_width = FALSE)
+
+comp_curr
+```
+
+
+
+---
+
+
+<h2 style="font-size: 40px; margin-top: 0px; margin-bottom: 5px">ML/SL Comparison - CDR Classification</h2>
+
+```{r, echo=F}
+comp_curr_base <- comp_table[[4]]$AUC
+caption_curr <- "AUC - Observation Forecasts"
+
+#comp_curr_base <- remake_comp_table(comp_curr_base)
+
+comp_curr <- 
+  knitr::kable(comp_curr_base, "html", 
+               align = rep("c", ncol(comp_curr_base)),
+               escape = FALSE, linesep = "",
+               caption = paste0("<div style=\"color:black; font-size:32px\">", caption_curr, "</div>")
+               )
+comp_curr <- row_spec(comp_curr, c(1:nrow(comp_curr_base)), extra_css = "vertical-align: middle !important;")
+comp_curr <- column_spec(comp_curr, 1, bold=T)
+comp_curr <- kable_styling(comp_curr, font_size=16, full_width = FALSE)
+
+comp_curr
+```
+
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class: center, middle
+
+#Aim 3 Results  
+#Random Effects Imputation<br>and Impact on<br>ADAS-Cog Prediction
+#AD Meta-database
+
+---
+
+## Aim 3 - Meta-DB Imputation
+
+```{r, echo = F}
+impute_table_base <- impute_table_builder(eval_true)
+impute_table_base[,1] <- gsub("Fixed Effects", "Fixed<br>Effects", impute_table_base[,1])
+
+impute_table <- 
+  knitr::kable(impute_table_base, "html", 
+               align = c("l", rep("c", ncol(impute_table_base)-1)),
+               escape = FALSE, linesep = "",
+               #caption = paste0("<div style=\"color:black; font-size:24px\">", caption_curr, "</div>")
+               )
+impute_table <- row_spec(impute_table, 1, extra_css = "border-top: 1px solid;")
+impute_table <- row_spec(impute_table, c(1:nrow(impute_table_base)), extra_css = "vertical-align: middle !important;")
+
+
+impute_table <- add_header_above(impute_table, c( " ", "RMSE" = 3, "Median AE" = 3, "AV Bias" = 3))
+impute_table <- column_spec(impute_table, c(1,4,7), border_right = T)
+
+impute_table <- pack_rows(impute_table, "Whole\n Trajectories", 1, 2, label_row_css = "background_color")
+impute_table <- pack_rows(impute_table, "Observation\n Forecasts", 3, 5)
+
+
+
+impute_table <- kable_styling(impute_table, font_size=14, full_width = FALSE)
+
+impute_table
+
+```
+
+
+
+---
+
+<h2 style="font-size: 42px; margin-top: 15px; margin-bottom: 15px">Aim 3 - Meta-DB Design Comparison</h2>
+
+```{r, echo = F}
+
+
+set.seed(123456)
+comp_impute_base <- impute_compare_builder(eval_true, bold_dict$traj_meta, obs = FALSE)
+
+
+comp_impute <- 
+  knitr::kable(comp_impute_base, "html", 
+               align = rep("c", ncol(comp_impute_base)),
+               escape = FALSE, linesep = "",
+               caption = paste0("<div style=\"color:black; font-size:32px\">", "Whole Subject Trajectories", "</div>")
+               )
+
+comp_impute <- row_spec(comp_impute, c(1:nrow(comp_impute_base)), extra_css = "vertical-align: middle !important;")
+comp_impute <- column_spec(comp_impute, 1, bold=T, width = "40em")#, extra_css = "border-right: 1px solid;")
+comp_impute <- column_spec(comp_impute, c(2:(nrow(comp_impute_base)+1)), width = "30em")
+comp_impute <- kable_styling(comp_impute, font_size=14, full_width = FALSE)
+
+
+# comp_xml <- kable_as_xml(comp_impute)
+# 
+# for(ii in c(2:(ncol(comp_impute_base)+1))){
+#   xml2::xml_set_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(comp_xml, 2),1),ii), "style", "border-bottom: 1px solid; text-align:center;")
+# }
+# 
+# comp_impute <- xml_as_kable(comp_xml)
+
+comp_impute
+
+```
+<div style = "font-size: 18px; text-align: center;">RMSE comparisons in lower half of matrix with AV bias comparisons in upper half<br>
+Comparisons limited to within the same model type or the same random effects design<br>
+Direction of comparisons is column model relative to row model<br>
+Bolded entries indicate superior model exhibited improved metrics in at least 90% of samplings</div>
+
+
+
+---
+
+<h2 style="font-size: 42px; margin-top:15px; margin-bottom: 0px">Aim 3 - Meta-DB Design Comparison</h2>
+
+```{r, echo = F}
+
+
+set.seed(123456)
+comp_impute_base <- impute_compare_builder(eval_true, bold_dict$obs_meta, obs = TRUE)
+
+
+comp_impute <- 
+  knitr::kable(comp_impute_base, "html", 
+               align = rep("c", ncol(comp_impute_base)),
+               escape = FALSE, linesep = "",
+               caption = paste0("<div style=\"color:black; font-size:32px\">", "Observation Forecasting", "</div>")
+               )
+comp_impute <- row_spec(comp_impute, c(1:nrow(comp_impute_base)), extra_css = "vertical-align: middle !important;")
+#comp_impute <- row_spec(comp_impute, 1, extra_css = "border-top: 1px solid;")
+comp_impute <- column_spec(comp_impute, 1, bold=T, width = "40em")#, border_right = TRUE)
+comp_impute <- column_spec(comp_impute, c(2:(nrow(comp_impute_base)+1)), width = "30em")
+comp_impute <- kable_styling(comp_impute, font_size=14, full_width = FALSE)
+
+# comp_xml <- kable_as_xml(comp_impute)
+# 
+# for(ii in c(2:(ncol(comp_impute_base)+1))){
+#   xml2::xml_set_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(comp_xml, 2),1),ii), "style", "border-bottom: 1px solid; text-align:center;")
+# }
+# 
+# comp_impute <- xml_as_kable(comp_xml)
+
+
+comp_impute
+
+```
+
+
+---
+
+<h2 style="margin-bottom: -10px;">Aim 3 - Meta-DB Metrics</h2>
+
+
+```{r, echo = F}
+
+plot_subj <- impute_plot_builder(eval_true, "subj")
+plot_obs <- impute_plot_builder(eval_true, "obs")
+
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_subj[[1]]
+
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_subj[[2]]
+
+
+```
+
+
+]
+
+
+.pull-right[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_obs[[1]]
+
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_obs[[2]]
+
+
+```
+
+
+
+]
+
+
+
+
+---
+class: center, middle
+
+#Aim 3 Results  
+#Random Effects Imputation<br>and Impact on<br>ADAS-Cog Prediction
+#Synthetic Cohorts
+
+---
+
+## Aim 3 - Synthetic Data Imputation
+
+
+```{r, echo = F}
+impute_table_base <- impute_table_builder(eval_synth)
+impute_table_base[,1] <- gsub("Fixed Effects", "Fixed<br>Effects", impute_table_base[,1])
+
+impute_table <- 
+  knitr::kable(impute_table_base, "html", 
+               align = c("l", rep("c", ncol(impute_table_base)-1)),
+               escape = FALSE, linesep = "",
+               #caption = paste0("<div style=\"color:black; font-size:24px\">", caption_curr, "</div>")
+               )
+impute_table <- row_spec(impute_table, 1, extra_css = "border-top: 1px solid;")
+impute_table <- row_spec(impute_table, c(1:nrow(impute_table_base)), extra_css = "vertical-align: middle !important;")
+
+impute_table <- add_header_above(impute_table, c( " ", "RMSE" = 3, "Median AE" = 3, "AV Bias" = 3))
+impute_table <- pack_rows(impute_table, "Whole\n Trajectories", 1, 2, label_row_css = "background_color")
+impute_table <- pack_rows(impute_table, "Observation\n Forecasts", 3, 5)
+
+impute_table <- column_spec(impute_table, c(1,4,7), border_right = T)
+
+
+impute_table <- kable_styling(impute_table, font_size=14, full_width = FALSE)
+
+impute_table
+
+```
+
+
+
+---
+
+<h2 style="font-size: 42px; margin-top: 15px; margin-bottom: 15px">Aim 3 - Synthetic Design Comparison</h2>
+
+```{r, echo = F}
+
+
+set.seed(123456)
+comp_impute_base <- impute_compare_builder(eval_synth, bold_dict$traj_synth, obs = FALSE)
+
+
+comp_impute <- 
+  knitr::kable(comp_impute_base, "html", 
+               align = rep("c", ncol(comp_impute_base)),
+               escape = FALSE, linesep = "",
+               caption = paste0("<div style=\"color:black; font-size:32px\">", "Whole Subject Trajectories", "</div>")
+               )
+comp_impute <- row_spec(comp_impute, c(1:nrow(comp_impute_base)), extra_css = "vertical-align: middle !important;")
+#comp_impute <- row_spec(comp_impute, 1, extra_css = "border-top: 1px solid;")
+comp_impute <- column_spec(comp_impute, 1, bold=T, width = "40em")#, border_right = TRUE)
+comp_impute <- column_spec(comp_impute, c(2:(nrow(comp_impute_base)+1)), width = "30em")
+comp_impute <- kable_styling(comp_impute, font_size=14, full_width = FALSE)
+
+# comp_xml <- kable_as_xml(comp_impute)
+# 
+# for(ii in c(2:(ncol(comp_impute_base)+1))){
+#   xml2::xml_set_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(comp_xml, 2),1),ii), "style", "border-bottom: 1px solid; text-align:center;")
+# }
+# 
+# comp_impute <- xml_as_kable(comp_xml)
+
+comp_impute
+
+```
+<div style = "font-size: 18px; text-align: center;">RMSE comparisons in lower half of matrix with AV bias comparisons in upper half<br>
+Comparisons limited to within the same model type or the same random effects design<br>
+Direction of comparisons is column model relative to row model<br>
+Bolded entries indicate superior model displayed improved metrics in at least 90% of cohorts</div>
+
+
+
+---
+
+<h2 style="font-size: 42px; margin-top:15px; margin-bottom: 0px">Aim 3 - Synthetic Design Comparison</h2>
+
+```{r, echo = F}
+
+
+set.seed(123456)
+comp_impute_base <- impute_compare_builder(eval_synth, bold_dict$obs_synth, obs = TRUE)
+
+
+comp_impute <- 
+  knitr::kable(comp_impute_base, "html", 
+               align = rep("c", ncol(comp_impute_base)),
+               escape = FALSE, linesep = "",
+               caption = paste0("<div style=\"color:black; font-size:32px\">", "Observation Forecasting", "</div>")
+               )
+comp_impute <- row_spec(comp_impute, c(1:nrow(comp_impute_base)), extra_css = "vertical-align: middle !important;")
+#comp_impute <- row_spec(comp_impute, 1, extra_css = "border-top: 1px solid;")
+comp_impute <- column_spec(comp_impute, 1, bold=T, width = "40em")#, border_right = TRUE)
+comp_impute <- column_spec(comp_impute, c(2:(nrow(comp_impute_base)+1)), width = "30em")
+comp_impute <- kable_styling(comp_impute, font_size=14, full_width = FALSE)
+
+# comp_xml <- kable_as_xml(comp_impute)
+# 
+# for(ii in c(2:(ncol(comp_impute_base)+1))){
+#   xml2::xml_set_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(comp_xml, 2),1),ii), "style", "border-bottom: 1px solid; text-align:center;")
+# }
+# 
+# comp_impute <- xml_as_kable(comp_xml)
+
+comp_impute
+
+```
+
+
+---
+
+<h2 style="margin-bottom: -10px;">Aim 3 - Synthetic Data Metrics</h2>
+
+
+```{r, echo = F}
+
+plot_subj <- impute_plot_builder(eval_synth, "subj")
+plot_obs <- impute_plot_builder(eval_synth, "obs")
+
+
+```
+
+.pull-left[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_subj[[1]]
+
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_subj[[2]]
+
+
+```
+
+
+]
+
+
+.pull-right[
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_obs[[1]]
+
+
+```
+
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_obs[[2]]
+
+
+```
+
+
+
+]
+
+
+

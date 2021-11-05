@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Applications of Longitudinal Machine Learning Methods in Multi-Study Alzheimer’s Disease Datasets</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Charles Murchison" />
+    <meta name="date" content="2021-11-10" />
+    <script src="libs/header-attrs-2.8/header-attrs.js"></script>
+    <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
+    <link href="libs/remark-css-0.0.1/robot.css" rel="stylesheet" />
+    <link href="libs/remark-css-0.0.1/robot-fonts.css" rel="stylesheet" />
+    <script src="libs/kePrint-0.0.1/kePrint.js"></script>
+    <link href="libs/lightable-0.0.1/lightable.css" rel="stylesheet" />
+    <link rel="stylesheet" href="extra.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, title-slide
+
+# Applications of Longitudinal Machine Learning Methods in Multi-Study Alzheimer’s Disease Datasets
+## PhD Dissertation Defense for<br>Doctorate Degree in Biostatistics
+### Charles Murchison
+### Department of Biostatistics<br>Alzheimer’s Disease Research Center
+### 11/10/2021
+
+---
+
+
+
+
+class: center, middle
+
+#Preliminary Results  
+#Reference Models
+
+
+---
+
+## Aim 1 - ADAS Summary Results
+
+&lt;div style="text-align: center; font-size: 32px"&gt;&lt;b&gt;Whole Subject Trajectories&lt;/b&gt;&lt;/div&gt;
+&lt;table class="table" style="font-size: 22px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; Metric &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; CPAD
+Reference &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; MERF &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Single
+GLMER &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Bagged
+GLMER &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Boosted &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; RMSE &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 6.819 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 4.928 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 5.684 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 5.542 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 4.943 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Median AE &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 5.283 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 3.792 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 4.427 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 4.323 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 3.858 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Bias &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 1.602 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.066 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.427 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.423 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.107 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; AV Bias &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 4.421 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 3.162 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 3.673 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 3.557 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 3.227 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;br&gt;
+
+&lt;div style="text-align: center; font-size: 32px"&gt;&lt;b&gt;Final Observation Forecasting:&lt;/b&gt;&lt;/div&gt;
+&lt;table class="table" style="font-size: 22px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; Metric &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; CPAD
+Reference &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; MERF &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Single
+GLMER &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Bagged
+GLMER &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Boosted &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; RMSE &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 9.720 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 4.721 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 4.528 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 5.142 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 5.233 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Median AE &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 6.859 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 3.588 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 3.357 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 3.842 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 3.971 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Bias &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; -1.360 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; -1.151 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; -0.593 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; -0.208 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; -1.322 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; AV Bias &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 4.799 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 2.820 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 2.573 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 2.888 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 3.158 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+
+
+
+
+---
+
+## Aim 1 - CDR Summary Results
+
+Whole Subject Trajectories:
+&lt;table class="table" style="font-size: 22px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; Metric &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; CDR
+Logistic &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; MERF &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Single
+GLMER &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Bagged
+GLMER &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Boosted &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Accuracy &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.711 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.815 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.803 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.818 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.825 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Precision &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.958 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.960 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.967 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.960 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.965 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Recall &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.661 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.798 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.776 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.801 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.806 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; AUC &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.841 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.903 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.892 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.907 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.916 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;br&gt;
+
+Final Observation Forecasting:
+&lt;table class="table" style="font-size: 22px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; Metric &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; CDR
+Logistic &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; MERF &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Single
+GLMER &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Bagged
+GLMER &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Boosted &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Accuracy &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.730 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.967 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.967 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.963 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.935 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Precision &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.977 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.983 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.989 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.989 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.982 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Recall &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.694 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.978 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.972 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.966 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.939 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; AUC &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.825 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.981 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.981 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.987 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.972 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+---
+
+
+
+
+class: center, middle
+
+#Aim 2 Results  
+#Neural Network Methods
+
+---
+
+## Aim 2 - Neural Net ADAS Summary
+
+&lt;div style="text-align: center; font-size: 32px"&gt;&lt;b&gt;Whole Subject Trajectories&lt;/b&gt;&lt;/div&gt;
+&lt;table class="table" style="font-size: 22px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; Metric &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; CPAD
+Reference &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; FNN &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; 1D CNN &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; LSTM RNN &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; RMSE &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 6.819 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 4.660 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 6.506 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 6.167 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Median AE &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 5.283 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 3.560 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 4.673 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 4.423 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Bias &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 1.602 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.526 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 1.075 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 1.359 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; AV Bias &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 4.421 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 2.830 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 3.427 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 3.146 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;br&gt;
+
+&lt;div style="text-align: center; font-size: 32px"&gt;&lt;b&gt;Final Observation Forecasting:&lt;/b&gt;&lt;/div&gt;
+&lt;table class="table" style="font-size: 22px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; Metric &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; CPAD
+Reference &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; FNN &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; 1D CNN &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; LSTM RNN &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; RMSE &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 9.720 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 5.483 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 5.856 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 5.650 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Median AE &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 6.859 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 4.257 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 3.823 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 3.727 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Bias &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; -1.360 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.431 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; -1.068 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; -1.109 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; AV Bias &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 4.799 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 3.437 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 2.280 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 2.438 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+
+---
+
+---
+
+## Aim 2 - Neural Net CDR Summary
+
+&lt;div style="text-align: center; font-size: 32px"&gt;&lt;b&gt;Whole Subject Trajectories&lt;/b&gt;&lt;/div&gt;
+&lt;table class="table" style="font-size: 22px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; Metric &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; CDR
+Logistic &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; FNN &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; 1D CNN &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; LSTM RNN &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Accuracy &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.711 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.800 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.836 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.835 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Precision &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.958 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.972 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.963 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.958 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Recall &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.661 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.768 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.822 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.824 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; AUC &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.841 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.908 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.855 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.848 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;br&gt;
+
+&lt;div style="text-align: center; font-size: 32px"&gt;&lt;b&gt;Final Observation Forecasting:&lt;/b&gt;&lt;/div&gt;
+&lt;table class="table" style="font-size: 22px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; Metric &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; CDR
+Logistic &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; FNN &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; 1D CNN &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; LSTM RNN &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Accuracy &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.730 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.832 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.949 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.972 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Precision &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.977 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.980 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.994 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.983 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Recall &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.694 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.816 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.944 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.983 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; AUC &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.825 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.924 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.958 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.949 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+
+---
+
+
+
+
+
+
+
+---
+
+
+&lt;h2 style="margin-top: 0px; margin-bottom: 5px"&gt;Reference - ADAS CPAD&lt;/h2&gt;
+
+
+
+
+
+.pull-left[
+&lt;div style="margin-top: 1px; margin-bottom: -2.5px; text-align:center"&gt;Whole Subject Trajectories&lt;/div&gt;
+
+&lt;img src="test_md_results_files/figure-html/unnamed-chunk-10-1.png" style="margin-left: auto; margin-right:auto; display: block" /&gt;
+&lt;div style="margin-bottom: -5px"&gt;&lt;/div&gt;
+
+&lt;img src="test_md_results_files/figure-html/unnamed-chunk-11-1.png" style="margin-left: auto; margin-right:auto; display: block" /&gt;
+
+
+]
+
+
+.pull-right[
+&lt;div style="margin-top: 1px; margin-bottom: -2.5px; text-align:center"&gt;Final Observation Forecasts&lt;/div&gt;
+
+&lt;img src="test_md_results_files/figure-html/unnamed-chunk-12-1.png" style="margin-left: auto; margin-right:auto; display: block" /&gt;
+&lt;div style="margin-bottom: -5px"&gt;&lt;/div&gt;
+
+&lt;img src="test_md_results_files/figure-html/unnamed-chunk-13-1.png" style="margin-left: auto; margin-right:auto; display: block" /&gt;
+
+
+]
+&lt;table class="table" style="font-size: 18px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:center;"&gt; Type &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; RMSE &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; MAE &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Bias &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; AV Bias &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:center;font-weight: bold;"&gt; Trajectories &lt;/td&gt;
+   &lt;td style="text-align:center;font-weight: bold;"&gt; 6.819 &lt;/td&gt;
+   &lt;td style="text-align:center;font-weight: bold;"&gt; 5.283 &lt;/td&gt;
+   &lt;td style="text-align:center;font-weight: bold;"&gt; 1.602 &lt;/td&gt;
+   &lt;td style="text-align:center;font-weight: bold;"&gt; 4.421 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:center;font-weight: bold;"&gt; Forecasts &lt;/td&gt;
+   &lt;td style="text-align:center;font-weight: bold;"&gt; 9.720 &lt;/td&gt;
+   &lt;td style="text-align:center;font-weight: bold;"&gt; 6.859 &lt;/td&gt;
+   &lt;td style="text-align:center;font-weight: bold;"&gt; -1.360 &lt;/td&gt;
+   &lt;td style="text-align:center;font-weight: bold;"&gt; 4.799 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+
+
+
+---
+
+
+
+&lt;h2 style="margin-top: 0px; margin-bottom: 5px"&gt;Reference - CDR Logisitic&lt;/h2&gt;
+
+
+
+
+
+.pull-left[
+&lt;div style="margin-top: 1px; margin-bottom: -2.5px; text-align:center"&gt;Whole Subject Trajectories&lt;/div&gt;
+
+&lt;img src="test_md_results_files/figure-html/unnamed-chunk-16-1.png" style="margin-left: auto; margin-right:auto; display: block" /&gt;
+&lt;div style="margin-bottom: -5px"&gt;&lt;/div&gt;
+
+&lt;img src="test_md_results_files/figure-html/unnamed-chunk-17-1.png" style="margin-left: auto; margin-right:auto; display: block" /&gt;
+&lt;div style="margin-bottom: 1px"&gt;&lt;/div&gt;
+
+]
+
+
+.pull-right[
+&lt;div style="margin-top: 1px; margin-bottom: -2.5px; text-align:center"&gt;Final Observation Forecasts&lt;/div&gt;
+
+&lt;img src="test_md_results_files/figure-html/unnamed-chunk-18-1.png" style="margin-left: auto; margin-right:auto; display: block" /&gt;
+&lt;div style="margin-bottom: -5px"&gt;&lt;/div&gt;
+
+&lt;img src="test_md_results_files/figure-html/unnamed-chunk-19-1.png" style="margin-left: auto; margin-right:auto; display: block" /&gt;
+&lt;div style="margin-bottom: 1px"&gt;&lt;/div&gt;
+
+]
+&lt;table class="table" style="font-size: 18px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:center;"&gt; Type &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Accuracy &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Precision &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Recall &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; AUC &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:center;font-weight: bold;"&gt; Trajectories &lt;/td&gt;
+   &lt;td style="text-align:center;font-weight: bold;"&gt; 0.7107 &lt;/td&gt;
+   &lt;td style="text-align:center;font-weight: bold;"&gt; 0.9579 &lt;/td&gt;
+   &lt;td style="text-align:center;font-weight: bold;"&gt; 0.6607 &lt;/td&gt;
+   &lt;td style="text-align:center;font-weight: bold;"&gt; 0.8412 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:center;font-weight: bold;"&gt; Forecasts &lt;/td&gt;
+   &lt;td style="text-align:center;font-weight: bold;"&gt; 0.7302 &lt;/td&gt;
+   &lt;td style="text-align:center;font-weight: bold;"&gt; 0.9766 &lt;/td&gt;
+   &lt;td style="text-align:center;font-weight: bold;"&gt; 0.6944 &lt;/td&gt;
+   &lt;td style="text-align:center;font-weight: bold;"&gt; 0.8246 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+
+---
+
+## Reference Model Observations
+
+ - The CPAD model performed best at annual visit time points where data was more common but also exhibited greater variance and bias at later times
+ 
+ - The CPAD model also performed better when predicting entire trajectories compared to final observation forecasting
+ 
+ - The logistic regression model for impairment also observed better prediction at earlier time points with decreasing precision due to an increased proportion of false positives
+ 
+ - Although there was a drop in predictive capacity when forecasting final observations for the CDR model, it was also more subdued in the classification model relative to the variance increase seen in the CPAD model for ADAS-Cog
+ 
+ - Regardless, both models performed reasonably well given their limited covariate sets but clearly displayed room for improvement in predictive ability
+ 
+ 
+
+---
+
+&lt;h2 style="font-size: 40px; margin-bottom: 5px"&gt;ML/SL Comparison - ADAS Regression&lt;/h2&gt;
+
+&lt;table class="table" style="font-size: 16px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+&lt;caption style="font-size: initial !important;"&gt;&lt;div style="color:black; font-size:32px"&gt;RMSE&lt;/div&gt;&lt;/caption&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt;   &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Reference &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; FNN &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; MERF &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Boosted &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Bagged &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; GLMER &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; LSTM &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; CNN &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;font-weight: bold;"&gt; Reference &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; &lt;b&gt;6.819&lt;/b&gt; &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -2.160&lt;br&gt;(-31.67%)&lt;br&gt;&amp;lt;0.001 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -1.891&lt;br&gt;(-27.73%)&lt;br&gt;&amp;lt;0.001 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -1.876&lt;br&gt;(-27.51%)&lt;br&gt;&amp;lt;0.001 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -1.277&lt;br&gt;(-18.73%)&lt;br&gt;&amp;lt;0.001 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -1.135&lt;br&gt;(-16.64%)&lt;br&gt;&amp;lt;0.001 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -0.652&lt;br&gt;(-9.56%)&lt;br&gt;&amp;lt;0.001 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -0.313&lt;br&gt;(-4.59%)&lt;br&gt;0.041 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;font-weight: bold;"&gt; FNN &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-2.351,&lt;br&gt;-1.972] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; &lt;b&gt;4.660&lt;/b&gt; &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -0.269&lt;br&gt;(-5.45%)&lt;br&gt;0.004 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -0.284&lt;br&gt;(-5.74%)&lt;br&gt;0.007 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -0.882&lt;br&gt;(-15.92%)&lt;br&gt;&amp;lt;0.001 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -1.025&lt;br&gt;(-18.03%)&lt;br&gt;&amp;lt;0.001 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -1.508&lt;br&gt;(-24.45%)&lt;br&gt;&amp;lt;0.001 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -1.847&lt;br&gt;(-28.38%)&lt;br&gt;&amp;lt;0.001 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;font-weight: bold;"&gt; MERF &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-2.112,&lt;br&gt;-1.658] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-0.469,&lt;br&gt;-0.062] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; &lt;b&gt;4.928&lt;/b&gt; &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -0.015&lt;br&gt;(-0.31%)&lt;br&gt;0.457 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -0.614&lt;br&gt;(-11.07%)&lt;br&gt;&amp;lt;0.001 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -0.756&lt;br&gt;(-13.30%)&lt;br&gt;&amp;lt;0.001 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -1.239&lt;br&gt;(-20.09%)&lt;br&gt;&amp;lt;0.001 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -1.578&lt;br&gt;(-24.26%)&lt;br&gt;&amp;lt;0.001 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;font-weight: bold;"&gt; Boosted &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-2.097,&lt;br&gt;-1.662] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-0.481,&lt;br&gt;-0.069] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-0.247,&lt;br&gt;0.207] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; &lt;b&gt;4.943&lt;/b&gt; &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -0.598&lt;br&gt;(-10.80%)&lt;br&gt;&amp;lt;0.001 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -0.741&lt;br&gt;(-13.03%)&lt;br&gt;&amp;lt;0.001 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -1.224&lt;br&gt;(-19.84%)&lt;br&gt;&amp;lt;0.001 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -1.563&lt;br&gt;(-24.02%)&lt;br&gt;&amp;lt;0.001 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;font-weight: bold;"&gt; Bagged &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-1.503,&lt;br&gt;-1.041] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-1.102,&lt;br&gt;-0.675] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-0.824,&lt;br&gt;-0.393] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-0.813,&lt;br&gt;-0.387] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; &lt;b&gt;5.542&lt;/b&gt; &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -0.142&lt;br&gt;(-2.51%)&lt;br&gt;0.107 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -0.625&lt;br&gt;(-10.14%)&lt;br&gt;&amp;lt;0.001 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -0.965&lt;br&gt;(-14.83%)&lt;br&gt;&amp;lt;0.001 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;font-weight: bold;"&gt; GLMER &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-1.378,&lt;br&gt;-0.890] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-1.212,&lt;br&gt;-0.831] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-0.977,&lt;br&gt;-0.523] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-0.951,&lt;br&gt;-0.531] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-0.387,&lt;br&gt;0.093] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; &lt;b&gt;5.684&lt;/b&gt; &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -0.483&lt;br&gt;(-7.83%)&lt;br&gt;&amp;lt;0.001 &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -0.822&lt;br&gt;(-12.64%)&lt;br&gt;&amp;lt;0.001 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;font-weight: bold;"&gt; LSTM &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-0.996,&lt;br&gt;-0.260] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-1.699,&lt;br&gt;-1.298] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-1.463,&lt;br&gt;-1.018] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-1.429,&lt;br&gt;-1.031] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-0.846,&lt;br&gt;-0.395] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-0.718,&lt;br&gt;-0.245] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; &lt;b&gt;6.167&lt;/b&gt; &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; -0.339&lt;br&gt;(-5.21%)&lt;br&gt;0.034 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;vertical-align: middle !important;font-weight: bold;"&gt; CNN &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-0.705,&lt;br&gt;0.050] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-2.054,&lt;br&gt;-1.655] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-1.800,&lt;br&gt;-1.341] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-1.773,&lt;br&gt;-1.370] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-1.181,&lt;br&gt;-0.740] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-1.053,&lt;br&gt;-0.572] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; [-0.682,&lt;br&gt;0.013] &lt;/td&gt;
+   &lt;td style="text-align:center;vertical-align: middle !important;"&gt; &lt;b&gt;6.506&lt;/b&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+
+
+---
+
+
+&lt;h2 style="font-size: 42px"&gt;Approach - Hyperparameter Evaluation&lt;/h2&gt;
+
+&lt;div style="align-text: center"&gt;ADAS MERF Example&lt;/div&gt;
+
+
+
+&lt;img src="test_md_results_files/figure-html/unnamed-chunk-23-1.png" style="margin-left: auto; margin-right:auto; display: block" /&gt;
+`\(~\)`
+&lt;table class="table" style="font-size: 16px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:center;"&gt; Metric &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Value &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Hyperparameters &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:center;"&gt; RMSE &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 5.0439 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; mtry  =  0.6 ; ntree  =  250 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:center;"&gt; Median AE &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 3.7909 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; mtry  =  0.6 ; ntree  =  750 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:center;"&gt; Symm MAE Percent &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.3303 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; mtry  =  0.4 ; ntree  =  250 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:center;"&gt; Bias &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; -0.0116 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; mtry  =  0.4 ; ntree  =  750 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+---
+
+
+## Approach - Hyperparameter Evaluation
+
+&lt;div style="align-text: center"&gt;CDR - MERF Example&lt;/div&gt;
+
+
+
+&lt;img src="test_md_results_files/figure-html/unnamed-chunk-26-1.png" style="margin-left: auto; margin-right:auto; display: block" /&gt;
+`\(~\)`
+&lt;table class="table" style="font-size: 16px; width: auto !important; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:center;"&gt; Metric &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Value &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Hyperparameters &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:center;"&gt; Accuracy &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.7536 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; mtry  =  0.7 ; ntree  =  750 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:center;"&gt; Class Error &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.2464 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; mtry  =  0.7 ; ntree  =  750 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:center;"&gt; Precision &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.9672 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; mtry  =  0.35 ; ntree  =  500 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:center;"&gt; Recall &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.7328 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; mtry  =  0.7 ; ntree  =  750 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:center;"&gt; AUC &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.7909 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; mtry  =  0.35 ; ntree  =  500 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+
+---
+## Acknowledgements
+
+***Talent wins games, but teamwork and intelligence win championships***  
+&amp;nbsp;&amp;nbsp;- Michael Jordan
+
+.pull-left[
+&lt;u&gt;Committee&lt;/u&gt;&lt;div style="margin-bottom: -10px;"&gt;&lt;/div&gt;
+- Jeff Szychowski, PhD
+- Richard Kennedy, MD, PhD
+- Byron Jaeger, PhD
+- Erik Roberson, MD, PhD
+- Gary Cutter, PhD
+]
+
+.pull-right[
+Alzheimer's Disease Research Center
+
+Center for Neurodegeneration and Experimental Therapeutics
+
+The faculty, staff and students in the Department of Biostatistics
+
+]
+
+
+&lt;img src="Images/UAB.png" width="90%" style="margin-left: auto; margin-right:auto; display: block" /&gt;
+
+
+
+
+
+
+
+
+
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_HTMLorMML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

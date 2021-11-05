@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Applications of Longitudinal Machine Learning Methods in Multi-Study Alzheimer’s Disease Datasets</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Chad Murchison" />
+    <meta name="date" content="2021-11-10" />
+    <script src="libs/header-attrs-2.8/header-attrs.js"></script>
+    <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
+    <link href="libs/remark-css-0.0.1/robot.css" rel="stylesheet" />
+    <link href="libs/remark-css-0.0.1/robot-fonts.css" rel="stylesheet" />
+    <link rel="stylesheet" href="extra.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, title-slide
+
+# Applications of Longitudinal Machine Learning Methods in Multi-Study<br>Alzheimer’s Disease Datasets
+## PhD Dissertation Defense for<br>Doctorate Degree in Biostatistics
+### Chad Murchison
+### Department of Biostatistics<br>Alzheimer’s Disease Research Center
+### 11/10/2021
+
+---
+
+
+
+
+
+## Outline
+.large[
+- Overview, objectives and aims
+
+- Approach and design
+
+- Ensemble tree methods
+
+- Sequential neural networks
+
+- Trajectories, forecasting, and imputation
+
+- Final thoughts
+
+]
+
+---
+
+## Overview - Inference/Prediction
+
+
+As a field, the goal of statistics is to learn from our data, commonly using inference and prediction; although intrinsically related there are subtle differences in how these methods are leveraged
+
+
+
+.pull-left[
+.large[Inference]
+
+- Use the model to learn about the data generation process
+
+- Explain the relationship between a response and covariates
+
+- Frequently emphasizes unbiased interpretation of this relationship
+
+- Is often then standard approach for biostatisticians
+
+]
+
+
+.pull-right[
+
+.large[Prediction]
+
+- Use the model to determine likely outcomes from the data
+
+- Role of covariates is to aid in calculating a response
+
+- Emphasis on generalization to unseen data 
+
+- Largely the purview of machine/statistical learning (ML/SL)
+
+]
+
+---
+
+## Overview - Machine Learning
+
+As computational power and data management capacity have increased, machine learning has found greater popularity across a range of applications in a number of different fields such as finance, transportation and medicine
+
+.pull-left[
+
+- Imagine processing
+
+- Identification / Classification
+
+- Intelligent agents
+
+- Natural language processing
+
+- Text mining
+
+- Decision support
+
+]
+
+
+.pull-right[
+
+&lt;img src="Images/ML_App.png" width="85%" height="85%" style="margin-left: auto; margin-right:auto; display: block" /&gt;
+
+]
+
+
+One area attempting to utilize its extensive neuroimaging, genetic, biomarker, and clinical/demographic profiling for ML is Alzheimer's disease (AD) and its related dementias
+
+.footnote[https://www.quora.com/What-are-some-real-world-examples-of-applications-of-machine-learning-in-the-field]
+
+---
+
+
+
+layout: false
+
+&lt;h2 style="margin-bottom: 10px;"&gt;Overview - Alzheimer's Disease&lt;/h2&gt;
+
+.pull-left[
+
+&lt;img src="Images/AD_data_AL.png" width="1032" style="margin-left: auto; margin-right:auto; display: block" /&gt;
+
+]
+
+.pull-right[
+
+With the ever-aging population, AD has become an increasingly prominent medical concern at the global, national and local level
+
+Accompanying the cost and pervasiveness is a recognition to better identify and treat patients in advance
+
+This includes both actual measures of ability across the spectrum of cognitive domains or predicting impairment
+
+Prediction is key as the pathological and biological hallmarks of AD precede cognitive disability substantially
+
+]
+
+
+&lt;p style="padding-top: 10px; text-align: center;"&gt;This makes AD ideal for machine learning applications&lt;/p&gt;
+
+.footnote[https://alz.org/alzheimers-dementia/facts-figures]
+
+---
+
+
+
+## Overview - ML/SL and AD
+
+Recognition of the potential of ML/SL in AD is clear; a PubMed search of "machine learning" and "Alzheimer's disease" returned 1355 results with 330 in 2020 alone while arxiv.org cited another 230+ articles.  However, substantial limitations remain:
+
+ - Models focus on clinical diagnosis as a classification response with little effort to predict neuropyschological outcomes directly; this invariably emphasizes clinician judgment over arguably more objective measures of impairment
+ 
+ - Nearly all ML/SL applications in AD use methods which are cross-sectional in nature and designs that directly leverage or account for subject-specific effects, repeated measures, and serial correlation are comparatively uncommon; a literature review in 2021 found only 8% of 65 reviewed article explicitly used longitudinal methods
+ 
+ - Assessment and evaluation are limited with respect to direct model-to-model comparison as novel paradigms are developed; evaluation metrics such as accuracy are typically reported only for variations on the proposed ML/SL model and reference designs are almost never considered as baselines
+
+
+.footnote[Kumar S et. al. &lt;i&gt;JAMIA Open&lt;/i&gt;. 2021.  4(3): 1-10.]
+
+---
+
+
+## Overview - Objectives
+
+This dissertation sought to remedy these deficiencies by comprehensively comparing the predictive capacity of a variety of longitudinal extensions of ML/SL techniques in a harmonized multi-study dataset of Alzheimer's disease
+
+- Two classes of responses, one continuous and one binary categorical, were considered to contrast model ability for both regression and classification across cognitive outcomes with specific clinical and research contexts
+
+- Several distinct model designs were evaluated inlcuding standard inferential methods as reference, well-characterized ensemble methods, and adaptations of sequential deep-learning designs to work with time-dependent data
+
+- Special consideration was given to the development of both whole subject trajectories *de novo* as well as forecasting of final observations specifically utilizing previously observed participant data
+
+Together this research addressed the questions of which longitudinal ML/SL methods give the best performance for AD outcomes, was prediction superior to inferential standards, and what was the impact of subject-specific effects
+
+---
+
+
+## Specific Aims 
+
+To meet these objectives, the dissertation was composed of three primary aims:
+
+&lt;b&gt;Aim 1&lt;/b&gt;
+
+Assessment of the predictive performance for a variety of discriminative ensemble methods with adaptations specific to longitudinal data when applied to AD specific outcomes.  The models under consideration were:
+
+1. Mixed-effects random forest (MERF) with sampling from the feature space
+
+2. Bootstrap aggregated (bagged) mixed-effects trees with a standard non-bagged GLMER tree as reference
+
+3. Sequential boosting of residuals on mixed-effects trees (boosted)
+
+Specifically, what were the regression and classification metrics for these models, were they superior to the inferential references, how did the rank against each other, and were these patterns different when outcomes were predicted as trajectories versus forecasting of observations 
+
+
+---
+
+## Specific Aims 
+
+&lt;b&gt;Aim 2&lt;/b&gt;
+
+To contrast against the predictive ability of the ensemble methods using longitudinal extensions of deep-learning neural network model designs. This was structured around the sequential neural networks with wider use in fields such as image recognition and natural language processing and use their natural extensions to time-dependent data.  The methods under consideration are: 
+
+1. Long short-term memory recurrent neural networks (LSTM RNN)
+
+2. One-dimensional convolutional neural networks (CNN)
+
+3. A multi-layer perceptron / feed-forward neural network as a reference (FNN)
+
+Similar pipelines were carried out for the neural network designs to determine superiority in regression and classification tasks against the inferential references and among themselves and to see if these were consistent when predicting either whole trajectories or forecasting future observations
+
+---
+
+## Specific Aims
+
+&lt;b&gt;Aim 3&lt;/b&gt;
+
+Using repeated measures in longitudinal data allows for special consideration of the role of subject-specific effects on prediction which also holds for some longitudinal machine learning methods.  Assessment of the impact subject-specific effects have on generating whole outcome trajectories and forecasting investigated:
+
+1. Suppression of subject-specific effects to only use population-level covariates
+
+2. Imputation of subject-specific effects based on model parameterizations
+
+3. Directly leveraging subject-specific effects when forecasting future observations based on prior data
+
+Superiority in regression-based prediction metrics was compared among a pre-parameterized reference, an equivalent regression model built *de novo*, and the MERF ensemble method with ML models and across subject-specific effect designs
+
+
+
+
+
+
+
+
+---
+
+## Approach - Outcomes
+
+For a more comprehensive evaluation, both a continuous and categorical outcome were used to assess prediction using regression and classification
+
+**Continuous outcome for regression**  
+**Alzheimer's disease assessment scale - cognitive sub-scale (ADAS-Cog)**
+- An assessment battery to evaluate memory, reasoning, orientation, and language with a continuous 70 point scale with higher scores indicative of greater levels of impairment
+- Commonly used as an outcome in clinical trial settings as a more refined assessment of global and domain specific cognition
+- Similar to other neuropsychological assessments like the MocA and MMSE has higher resolution with greater levels of impairment giving it greater capacity to distinguish severity among the impaired but loses sensitivity when assessing the cognitively intact
+
+
+&lt;img src="Images/ADAS_1.png" width="55%" style="margin-left: auto; margin-right:auto; display: block" /&gt;
+
+  
+---
+
+## Approach - Outcomes
+
+For a more comprehensive evaluation, both a continuous and categorical outcome were used to assess prediction using regression and classification
+
+**Categorical outcome for classification**  
+**Impairment status from the Clinical Dementia Rating (CDR)**
+- A five-point scale characterizing six domains of both cognitive and functional performance (Memory, Orientation, Judgment, Community Affairs, Home &amp; Hobbies, Personal Care)
+- Used as diagnostic tool in clinical settings and a metric in dementia studies
+- Global scores of 0.5 indicate "very mild" or "questionable" dementia with higher scores (1, 2, 3) noting increasing degrees of dementia
+- For this research, a score of 0.5 was taken breakpoint to create a binary variables (non-impaired vs impaired) to give a classification emphasizing earlier stages of decline
+
+
+&lt;img src="Images/CDR_1.png" width="85%" style="margin-left: auto; margin-right:auto; display: block" /&gt;
+
+  
+
+---
+
+
+## Approach - Reference Models
+
+
+Beyond cross-model comparisons, traditional inferential mixed-effects regression models were used as reference designs with parameterizations taken outside the dataset used for ML/SL model training and testing
+
+**CPAD parameterization for ADAS-Cog**
+
+ * Simulation model presented in 2012 used for generation of synthetic clinical trial cohorts with a focus on AD intervention
+ * Used mixed-effect beta regression for ADAS-Cog progression based on baseline age, sex, APOE4 carrier status, and baseline MMSE
+ * Provides both fixed effect parameters for population covariates and random effects variances for intercept and slope
+ * Although primarily tuned to predict ADAS-Cog out to two years in linear time has also been used for wider time frames
+
+&lt;img src="Images/CPAD_1.png" width="65%" style="margin-left: auto; margin-right:auto; display: block" /&gt;
+
+
+---
+
+## Approach - Reference Models
+
+
+Beyond cross-model comparisons, traditional inferential mixed-effects regression models were used as reference designs with parameterizations taken outside the dataset used for ML/SL model training and testing
+
+**CDR impairment status built ad hoc**
+
+ * Built using mixed-effects logisitic regression using a holdout subset of the multi-study database
+ * Follows the same parameterization scheme as the CPAD ADAS-Cog model with population-level covariates and subject-specific random effects
+ * Exception is unlike CPAD there is no time-MMSE interaction which was found to impede model convergence due to overfitting
+ * Unstructured random effects design with intercept and slope and a covariance term between the components
+
+
+
+---
+
+## Approach - Reference Models
+
+In Aim 3, the role of pre-determined parameters for random effects were evaluated in the ADAS-Cog to investigate how imputation or suppression of random effects impacted variance and bias when predicting both whole trajectories and observational forecasting
+
+In addition to the CPAD reference model, a *de novo* beta regression model was built directly from the data to update the random effects components and include an unstructured correlation term, as well as the MERF ML model which contains a similar random effects component
+
+This aim was specifically constructed to address a recommendation of the CPAD simulation software to impute random effects when generating synthetic cohorts for feasibility with implications of improved generalization
+
+&lt;img src="Images/CPAD_2.png" width="75%" style="margin-left: auto; margin-right:auto; display: block" /&gt;
+
+.footnote[Polhamus DG and Rogers JA. Simulating Clinical Trials in Alzheimer's Disease.]
+
+---
+
+
+## Approach - Meta-database
+
+ - Assembled from the control participants of 18 AD clinical trials as part of the Alzheimer's Disease Cooperative Study (ADCS) and the four phases of the Alzheimer's Disease Neuroimaging Initiative (ADNI) observational study
+ 
+ - Full dataset includes 8936 unique participants with almost 47000 time points with some data extending out to 12 years of follow-up
+
+&lt;img src="Images/adcs_studies.png" width="843" style="margin-left: auto; margin-right:auto; display: block" /&gt;
+
+ - Harmonization of the dataset mapped disparately coded visits to a continuous temporal variable based on study date and included participants with only baseline data for single visit subjects and screen failures (N=2392)
+ 
+ - Feature space based on minimal dataset required by CPAD and other measures potentially associated with cognitive impairment and high coverage
+  * Baseline characteristics: age, sex, race (3 level), ethnicity (2 level), education (5 level), use of anti-dementia medication, APOE4 allele count
+  * Time-dependent covariates: MMSE score, weight, blood pressure
+ 
+ 
+---
+
+## Approach - Data Preparation
+
+&lt;img src="Images/adcs_flow.png" width="2345" style="margin-left: auto; margin-right:auto; display: block" /&gt;
+
+
+---
+
+## Approach - Validation Sets
+
+
+&lt;img src="Images/adcs_flow_2.png" width="2364" style="margin-left: auto; margin-right:auto; display: block" /&gt;
+
+
+
+---
+
+## Approach - Pipeline Flow
+
+&lt;img src="Images/ML_flow.png" width="1684" style="margin-left: auto; margin-right:auto; display: block" /&gt;
+
+
+
+
+---
+
+## Approach - Ensemble Methods
+
+&lt;h3 style="margin-top: -15px; margin-bottom: 0px"&gt;Bagging on GLMER Trees&lt;/h3&gt;
+
+.pull-left[
+
+- Randomly samples participants from the training dataset and use out-of-bag samples for validation 
+
+- Tree pruning is not necessary, instead results are averaged over the collections trees
+
+- Building of the mixed-effects trees was implemented using the &lt;i&gt;glmertree&lt;/i&gt; package in R
+
+- Modified script was developed to conduct the bootstrap aggregation with a single, non-bagged tree as reference
+]
+
+.pull-right[
+
+
+&lt;img src="Images/bagging.jpg" width="90%" style="margin-left: auto; margin-right:auto; display: block" /&gt;
+
+]
+
+.footnote[https://www.kdnuggets.com/2019/09/ensemble-learning.html]
+
+---
+
+## Approach - Ensemble Methods
+
+&lt;h3 style="margin-top: -15px; margin-bottom: 0px"&gt;Boosting on Mixed-Effect Trees&lt;/h3&gt;
+
+
+.pull-left[
+
+- Instead of sampling from participants during training, the entire training set is used but the data is modified before being iteratively fit to a new tree
+
+- Hyperparameters are important during cross-validation including number of trees, interaction depth, and the rate of learning across tree iterations
+
+- Boosting on the trees was conducted using the &lt;i&gt;gbm&lt;/i&gt; package in R with support for the clustering of longitudinal design via the &lt;i&gt;mvtboost&lt;/i&gt; package
+
+]
+
+.pull-right[
+
+
+&lt;img src="Images/boosting.jpg" width="75%" style="margin-left: auto; margin-right:auto; display: block" style="display: block; margin: auto 0 auto auto;" /&gt;
+
+]
+
+.footnote[https://www.kdnuggets.com/2019/09/ensemble-learning.html]
+
+
+
+---
+
+## Approach - Ensemble Methods
+
+
+&lt;h3 style="margin-top: -15px; margin-bottom: 0px"&gt;Mixed-effect random forest&lt;/h3&gt;
+
+- Instead of randomly sampling the dataset as in bagging, random forests sample from the feature space to make the trees uncorrelated
+
+- For the random forest decision making is similar, taken as the average/majority vote across all trees
+
+- Subject-specific components are implemented in the leaf nodes of the trees with mixed-effects models for clusters
+
+- Implementation used the &lt;i&gt;LongituRF&lt;/i&gt; package in R with modifications to allow for direct control over how the random effects components were utilized
+
+
+&lt;img src="Images/rand_forest.png" width="55%" style="margin-left: auto; margin-right:auto; display: block" style="display: block; margin: auto 0 auto auto;" /&gt;
+
+.footnote[https://syncedreview.com/2017/10/24/]
+
+---
+
+## Approach - Ensemble Methods
+
+&lt;h3 style="margin-top: -15px; margin-bottom: 0px"&gt;General ensemble considerations&lt;/h3&gt;
+
+- For all trees, objective functions were optimized using the squared error loss for regression and cross-entropy loss for classification
+
+- Hyperparameter tuning involved features such as number of trees, tree depths, number of observations in leaf nodes, tuning rate (boosting), and sampled proportion size (boosting, bagging) using 10x cross-fold validation
+
+- Modification to the &lt;i&gt;LongituRF&lt;/i&gt; package was necessary to allow for direct access to the subject-specific components in the leaf nodes to allow for evaluation of suppression, imputation, and fitting of random effects in the MERF model 
+
+&lt;img src="Images/pretty_tree.png" width="50%" style="margin-left: auto; margin-right:auto; display: block" style="display: block; margin: auto 0 auto auto;" /&gt;
+
+.footnote[https://www.slideshare.net/DeepakGeorge5/]
+
+
+---
+
+
+## Approach - Neural Networks
+
+&lt;h3 style="margin-top: -15px; margin-bottom: 0px"&gt;Feed Forward Neural Networks&lt;/h3&gt;
+
+
+.pull-left[
+
+- To compare against the sequential deep learning adaptations, a standard multi-layer perceptron was built as a control design
+
+- Simply considered time as another covariate and views each observation as independent; akin to using an OLS model for longitudinal data
+
+- Hyperparameters were more limited, restricted to number of layers, nodes per layer, and constraint on both the kernel and bias functions
+
+
+]
+
+
+.pull-right[
+
+
+&lt;img src="Images/FNN_1.png" width="85%" style="margin-left: auto; margin-right:auto; display: block; margin-top: auto; margin-bottom: auto; vertical-align: middle" style="display: block; margin: auto 0 auto auto;" /&gt;
+
+
+]
+
+
+
+.footnote[https://scikit-learn.org/stable/modules/neural_networks_supervised.html]
+
+---
+
+
+## Approach - Neural Networks
+
+&lt;h3 style="margin-top: -15px; margin-bottom: 0px"&gt;LSTM Recurrent Neural Networks&lt;/h3&gt;
+
+- The LSTM RNN has origins in machine translation and NLP using previously observed words to generate subsequent points
+
+- The unidirectional behavior extends naturally to time-dependent data and uses prior sequence information along with the current input 
+
+- Hyperparameters also include the activation weights for the forget/retention gates of the LSTM unit which aids with the "vanishing gradient" problem
+
+
+
+&lt;img src="Images/rnn_lstm.png" width="65%" style="margin-left: auto; margin-right:auto; display: block" style="display: block; margin: auto 0 auto auto;" /&gt;
+
+
+---
+
+## Approach - Neural Networks
+
+&lt;h3 style="margin-top: -15px; margin-bottom: 0px"&gt;1D Convolutional Neural Networks&lt;/h3&gt;
+
+
+.pull-left[
+
+- Instead of retaining varying amounts of prior data, CNNs use a sliding window (kernel) to extract smaller contiguous sequences
+
+- Developed in image processing with sliding windows for feature extraction, 1D extension instead shift along a temporal axis
+
+- Training alternates between convolution (local features) and pooling (combining convolutions) to reduce dimensionality of the feature sets before using a fully connected network for prediction
+
+
+
+]
+
+
+.pull-right[
+
+&lt;img src="Images/cnn_1.png" width="100%" style="margin-left: auto; margin-right:auto; margin-left: auto; display: block;" /&gt;
+
+&lt;img src="Images/cnn_2.png" width="50%" style="margin-top: auto; margin-bottom:auto; margin-right: auto; margin-left: auto; display: block;vertical-align: middle;" /&gt;
+
+&lt;img src="Images/cnn_3.png" width="850%" style="margin-top: auto; margin-bottom:auto; margin-right: auto; margin-left: auto; display: block;vertical-align: middle;" /&gt;
+
+
+]
+
+
+
+---
+
+## Approach - Neural Networks
+
+&lt;h3 style="margin-top: -15px; margin-bottom: 0px"&gt;General network considerations&lt;/h3&gt;
+
+
+- Due to the iterative nature of the sequential models, LSTM RNN and 1D CNN had outcomes at time 0 predicted from a FNN built using baseline data prior to sequential prediction when predicting whole trajectories
+
+- All models used standard build methods with connection weights calculated using stochastic gradient descent during back propagation and facilitated by the rectified linear unit activation function with MSE and CE as the loss functions using 10x cross-fold validation
+
+- R does not have native neural network functionality, instead it interfaces with an installation of Python using the &lt;i&gt;reticulate&lt;/i&gt; package with network building via &lt;i&gt;TensorFlow&lt;/i&gt; using &lt;i&gt;keras&lt;/i&gt; as a facilitating API
+
+
+&lt;img src="Images/rnn_relu.png" width="45%" style="margin-left: auto; margin-right:auto; display: block" style="display: block; margin: auto 0 auto auto;" /&gt;
+
+
+
+---
+
+
+&lt;h2 style="margin-bottom: -10px;"&gt;Approach - Methods Comparison&lt;/h2&gt;
+
+After hyperparameter tuning and model selection, predictions were carried out on the validation test sets for whole trajectories and last observation forecasting using the following evaluation metrics:
+
+.pull-left[
+
+**Regression on ADAS-Cog**
+
+- Root mean square error
+
+- Median absolute error
+
+- Prediction bias&lt;br&gt;(absolute value)
+
+
+]
+
+.pull-right[
+
+**CDR Impairment Classification**
+
+- Accuracy / Precision / Recall
+
+- ROC-based AUC
+
+- Net Reclassification Index&lt;br&gt;against reference design
+
+]
+
+To identify superiority of performance, both absolute differences and percent changes in metrics were calculated compared to the reference models as well as against each other
+
+Additionally, 1000-fold bootstrapping was carried out to build representative distributions and calculate proportion-based p-values to determine whether the observed changes in metrics were statistically significant
+
+
+
+---
+
+&lt;h2 style="font-size: 44px;"&gt;Reference - ADAS CPAD Trajectories&lt;/h2&gt;
+
+---
+&lt;h2 style="font-size: 40px;"&gt;ML/SL Comparison - ADAS Regression&lt;/h2&gt;
+
+---
+
+&lt;h2 style="font-size: 42px;"&gt;Aim 3 - Synth Data Design Comparison&lt;/h2&gt;
+
+---
+
+
+
+
+
+
+
+
+
+
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_HTMLorMML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

@@ -1,0 +1,564 @@
+---
+title: "Applications of Longitudinal Machine Learning Methods in Multi-Study Alzheimer’s Disease Datasets"
+subtitle: "PhD Dissertation Defense for<br>Doctorate Degree in Biostatistics"
+author: "Charles Murchison"
+institute: "Department of Biostatistics<br>Alzheimer's Disease Research Center"
+date: "11/10/2021"
+output:
+  xaringan::moon_reader:
+    css: [default, robot, robot-fonts, extra.css]
+    mathjax: "https://cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_HTMLorMML"
+    lib_dir: libs
+    nature:
+      titleSlideClass: ["center", "middle"]
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+
+R.utils::sourceDirectory("./R/", modifiedOnly = FALSE)
+
+suppressPackageStartupMessages({
+  library(shiny)
+  library(knitr)
+  library(kableExtra)
+  library(ggplot2)
+})
+
+options(knitr.kable.NA = '')
+opts_chunk$set(tidy = FALSE)
+
+boot_dat <- readRDS("boot_data.rds")
+comp_table <- readRDS("boot_compare_wobs.rds")  #Use boot_compare.rds if you don't want to combine observations
+
+dir.base <- "E:/UAB SOPH/Dissertation/Full Project - Meta Database/"
+eval_true <- readRDS(paste0(dir.base, "RandEff Impute/impute_true.rds"))
+eval_synth <- readRDS(paste0(dir.base, "RandEff Impute/impute_synth.rds"))
+
+
+
+
+
+
+
+```
+
+class: center, middle
+
+#Preliminary Results  
+#Reference Models
+
+
+---
+
+## Aim 1 - ADAS Summary Results
+
+<div style="text-align: center; font-size: 32px"><b>Whole Subject Trajectories</b></div>
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+merf.dir <- paste0(dir.base, "MERF/From Cheaha/_targets/objects/")
+glmer_ref.dir <- paste0(dir.base, "MERF_glmer/GLMER_ref/")
+glmer.dir <- paste0(dir.base, "MERF_glmer/Assembly/")
+mvtboost.dir <- paste0(dir.base, "MERF_mvt/From Cheaha/_targets/objects/")
+
+adas_eval <- adas_ref <- readRDS(paste0(merf.dir, "refmod_adas_holdout_eval"))
+adas_eval_obs <- adas_ref_obs <- readRDS(paste0(merf.dir, "refmod_adas_holdout_eval_obs_noRE"))
+
+adas_merf_eval <- readRDS(paste0(merf.dir, "merf_adas_holdout_eval"))
+adas_merf_eval_obs <- readRDS(paste0(merf.dir, "merf_adas_holdout_eval_obs"))
+adas_glmer_eval <- readRDS(paste0(glmer_ref.dir, "glmertree_ref_adas_holdout_eval"))
+adas_glmer_eval_obs <- readRDS(paste0(glmer_ref.dir, "glmertree_ref_adas_holdout_eval_obs"))
+adas_bagged_eval <- readRDS(paste0(glmer.dir, "glmertree_bagged_adas_holdout_eval"))
+adas_bagged_eval_obs <- readRDS(paste0(glmer.dir, "glmertree_bagged_adas_holdout_eval_obs"))
+adas_mvtboost_eval <- readRDS(paste0(mvtboost.dir, "mvtboost_adas_holdout_eval"))
+adas_mvtboost_eval_obs <- readRDS(paste0(mvtboost.dir, "mvtboost_adas_holdout_eval_obs"))
+
+list_adas <- list(adas_merf_eval, adas_glmer_eval, adas_bagged_eval, adas_mvtboost_eval)
+list_adas_obs <- list(adas_merf_eval_obs, adas_glmer_eval_obs, adas_bagged_eval_obs, adas_mvtboost_eval_obs)
+
+adas_summ <- table_summ_build(list_adas, adas_ref)
+tab_curr <- 
+  knitr::kable(adas_summ, "html",
+               align = c("l",rep("c", ncol(adas_summ)-1)),
+               escape=F, linesep="")
+#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr
+```
+
+<br>
+
+<div style="text-align: center; font-size: 32px"><b>Final Observation Forecasting:</b></div>
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+adas_summ_obs <- table_summ_build(list_adas_obs, adas_eval_obs)
+tab_curr <- 
+  knitr::kable(adas_summ_obs, "html",
+               align = c("l",rep("c", ncol(adas_summ_obs)-1)),
+               escape=F, linesep="")
+#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr
+
+```
+
+
+
+
+
+---
+
+## Aim 1 - CDR Summary Results
+
+Whole Subject Trajectories:
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+cdr_eval <- cdr_ref <- readRDS(paste0(merf.dir, "refmod_cdr_holdout_eval"))
+cdr_eval_obs <- cdr_ref_obs <- readRDS(paste0(merf.dir, "refmod_cdr_holdout_eval_obs_noRE"))
+
+cdr_merf_eval <- readRDS(paste0(merf.dir, "merf_cdr_holdout_eval"))
+cdr_merf_eval_obs <- readRDS(paste0(merf.dir, "merf_cdr_holdout_eval_obs"))
+cdr_glmer_eval <- readRDS(paste0(glmer_ref.dir, "glmertree_ref_cdr_holdout_eval"))
+cdr_glmer_eval_obs <- readRDS(paste0(glmer_ref.dir, "glmertree_ref_cdr_holdout_eval_obs"))
+cdr_bagged_eval <- readRDS(paste0(glmer.dir, "glmertree_bagged_cdr_holdout_eval"))
+cdr_bagged_eval_obs <- readRDS(paste0(glmer.dir, "glmertree_bagged_cdr_holdout_eval_obs"))
+cdr_mvtboost_eval <- readRDS(paste0(mvtboost.dir, "mvtboost_cdr_holdout_eval"))
+cdr_mvtboost_eval_obs <- readRDS(paste0(mvtboost.dir, "mvtboost_cdr_holdout_eval_obs"))
+
+list_cdr <- list(cdr_merf_eval, cdr_glmer_eval, cdr_bagged_eval, cdr_mvtboost_eval)
+list_cdr_obs <- list(cdr_merf_eval_obs, cdr_glmer_eval_obs, cdr_bagged_eval_obs, cdr_mvtboost_eval_obs)
+
+cdr_summ <- table_summ_build(list_cdr, cdr_ref)
+tab_curr <- 
+  knitr::kable(cdr_summ, "html",
+               align = c("l",rep("c", ncol(cdr_summ)-1)),
+               escape=F, linesep="")
+#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr
+```
+
+<br>
+
+Final Observation Forecasting:
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+cdr_summ_obs <- table_summ_build(list_cdr_obs, cdr_ref_obs)
+tab_curr <- 
+  knitr::kable(cdr_summ_obs, "html",
+               align = c("l",rep("c", ncol(cdr_summ_obs)-1)),
+               escape=F, linesep="")
+#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr
+```
+
+---
+
+
+
+
+class: center, middle
+
+#Aim 2 Results  
+#Neural Network Methods
+
+---
+
+## Aim 2 - Neural Net ADAS Summary
+
+<div style="text-align: center; font-size: 32px"><b>Whole Subject Trajectories</b></div>
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+nn.dir <- paste0(dir.base, "Neural Nets/_targets/objects/")
+
+adas_fnn_eval <- readRDS(paste0(nn.dir, "fnn_adas_holdout_eval"))
+adas_fnn_eval_obs <- readRDS(paste0(nn.dir, "fnn_adas_holdout_eval_obs"))
+adas_cnn_eval <- readRDS(paste0(nn.dir, "cnn_adas_holdout_eval"))
+adas_cnn_eval_obs <- readRDS(paste0(nn.dir, "cnn_adas_holdout_eval_obs"))
+adas_lstm_eval <- readRDS(paste0(nn.dir, "lstm_adas_holdout_eval"))
+adas_lstm_eval_obs <- readRDS(paste0(nn.dir, "lstm_adas_holdout_eval_obs"))
+
+list_adas <- list(adas_fnn_eval, adas_cnn_eval, adas_lstm_eval)
+list_adas_obs <- list(adas_fnn_eval_obs, adas_cnn_eval_obs, adas_lstm_eval_obs)
+
+adas_summ <- table_summ_build(list_adas, adas_ref)
+tab_curr <- 
+  knitr::kable(adas_summ, "html",
+               align = c("l",rep("c", ncol(adas_summ)-1)),
+               escape=F, linesep="")
+#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr
+```
+
+<br>
+
+<div style="text-align: center; font-size: 32px"><b>Final Observation Forecasting:</b></div>
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+adas_summ_obs <- table_summ_build(list_adas_obs, adas_eval_obs)
+tab_curr <- 
+  knitr::kable(adas_summ_obs, "html",
+               align = c("l",rep("c", ncol(adas_summ_obs)-1)),
+               escape=F, linesep="")
+#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr
+
+```
+
+
+---
+
+---
+
+## Aim 2 - Neural Net CDR Summary
+
+<div style="text-align: center; font-size: 32px"><b>Whole Subject Trajectories</b></div>
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+cdr_plot <- readRDS(paste0(merf.dir, "refmod_cdr_eval_plots"))
+
+cdr_eval <- cdr_ref <- readRDS(paste0(merf.dir, "refmod_cdr_holdout_eval"))
+
+cdr_fnn_eval <- readRDS(paste0(nn.dir, "fnn_cdr_holdout_eval"))
+cdr_fnn_eval_obs <- readRDS(paste0(nn.dir, "fnn_cdr_holdout_eval_obs"))
+cdr_cnn_eval <- readRDS(paste0(nn.dir, "cnn_cdr_holdout_eval"))
+cdr_cnn_eval_obs <- readRDS(paste0(nn.dir, "cnn_cdr_holdout_eval_obs"))
+cdr_lstm_eval <- readRDS(paste0(nn.dir, "lstm_cdr_holdout_eval"))
+cdr_lstm_eval_obs <- readRDS(paste0(nn.dir, "lstm_cdr_holdout_eval_obs"))
+
+list_cdr <- list(cdr_fnn_eval, cdr_cnn_eval, cdr_lstm_eval)
+list_cdr_obs <- list(cdr_fnn_eval_obs, cdr_cnn_eval_obs, cdr_lstm_eval_obs)
+
+cdr_summ <- table_summ_build(list_cdr, cdr_ref)
+tab_curr <- 
+  knitr::kable(cdr_summ, "html",
+               align = c("l",rep("c", ncol(cdr_summ)-1)),
+               escape=F, linesep="")
+#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr
+```
+
+<br>
+
+<div style="text-align: center; font-size: 32px"><b>Final Observation Forecasting:</b></div>
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+cdr_summ_obs <- table_summ_build(list_cdr_obs, cdr_eval_obs)
+tab_curr <- 
+  knitr::kable(cdr_summ_obs, "html",
+               align = c("l",rep("c", ncol(cdr_summ_obs)-1)),
+               escape=F, linesep="")
+#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr
+
+```
+
+
+---
+
+
+
+
+
+
+
+---
+
+
+<h2 style="margin-top: 0px; margin-bottom: 5px">Reference - ADAS CPAD</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+
+dir.base <- "E:/UAB SOPH/Dissertation/Full Project - Meta Database/"
+
+merf.dir <- paste0(dir.base, "MERF/From Cheaha/_targets/objects/")
+
+adas_plot <- readRDS(paste0(merf.dir, "refmod_adas_eval_plots"))
+
+adas_eval <- adas_ref <- readRDS(paste0(merf.dir, "refmod_adas_holdout_eval"))
+
+adas_plot_obs <- readRDS(paste0(merf.dir, "refmod_adas_eval_plots_obs_noRE"))
+
+adas_eval_obs <- adas_ref_obs <- readRDS(paste0(merf.dir, "refmod_adas_holdout_eval_obs_noRE"))
+
+```
+
+
+
+.pull-left[
+<div style="margin-top: 1px; margin-bottom: -2.5px; text-align:center">Whole Subject Trajectories</div>
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_adas_rebuild(adas_plot[[1]]$plot$data)
+
+```
+<div style="margin-bottom: -5px"></div>
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_adas_rebuild(adas_plot[[1]]$diff$data)
+
+```
+
+
+]
+
+
+.pull-right[
+<div style="margin-top: 1px; margin-bottom: -2.5px; text-align:center">Final Observation Forecasts</div>
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_adas_rebuild(adas_plot_obs[[1]]$plot$data)
+
+```
+<div style="margin-bottom: -5px"></div>
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_adas_rebuild(adas_plot_obs[[1]]$diff$data)
+
+```
+
+
+]
+```{r, echo=F}
+tab_curr_base <- rbind(adas_eval[[1]]$All, adas_eval_obs[[1]]$All)
+tab_curr_base$time <- as.character(tab_curr_base$time); tab_curr_base$time <- c(rep("Trajectories",nrow(adas_eval[[1]]$All)), rep("Forecasts",nrow(adas_eval[[1]]$All)))
+tab_curr_base <- table_proc_cont(tab_curr_base, .type=TRUE)
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=18, full_width =F)
+
+tab_curr
+
+```
+
+
+
+
+---
+
+
+
+<h2 style="margin-top: 0px; margin-bottom: 5px">Reference - CDR Logisitic</h2>
+
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+cdr_plot <- readRDS(paste0(merf.dir, "refmod_cdr_eval_plots"))
+
+cdr_eval <- cdr_ref <- readRDS(paste0(merf.dir, "refmod_cdr_holdout_eval"))
+
+cdr_plot_obs <- readRDS(paste0(merf.dir, "refmod_cdr_eval_plots_obs_noRE"))
+
+cdr_eval_obs <- cdr_ref_obs <- readRDS(paste0(merf.dir, "refmod_cdr_holdout_eval_obs_noRE"))
+
+```
+
+
+
+.pull-left[
+<div style="margin-top: 1px; margin-bottom: -2.5px; text-align:center">Whole Subject Trajectories</div>
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
+
+```
+<div style="margin-bottom: -5px"></div>
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+
+```
+<div style="margin-bottom: 1px"></div>
+
+]
+
+
+.pull-right[
+<div style="margin-top: 1px; margin-bottom: -2.5px; text-align:center">Final Observation Forecasts</div>
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_pred_cdr_rebuild(cdr_plot_obs[[1]]$plot$data)
+
+```
+<div style="margin-bottom: -5px"></div>
+
+```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+plot_diff_cdr_rebuild(cdr_plot_obs[[1]]$diff$data, nrow(cdr_plot_obs[[1]]$plot$data))
+
+```
+<div style="margin-bottom: 1px"></div>
+
+]
+```{r, echo=F}
+tab_curr_base <- rbind(cdr_eval[[1]]$All, cdr_eval_obs[[1]]$All)
+tab_curr_base$time <- as.character(tab_curr_base$time); tab_curr_base$time <- c(rep("Trajectories",nrow(cdr_eval[[1]]$All)), rep("Forecasts",nrow(cdr_eval_obs[[1]]$All)))
+tab_curr_base <- table_proc_cat(tab_curr_base, .type=TRUE)
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("ccc"),
+               escape=F, linesep="")
+tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
+tab_curr <- kable_styling(tab_curr, font_size=18, full_width =F)
+
+tab_curr
+
+```
+
+
+---
+
+## Reference Model Observations
+
+ - The CPAD model performed best at annual visit time points where data was more common but also exhibited greater variance and bias at later times
+ 
+ - The CPAD model also performed better when predicting entire trajectories compared to final observation forecasting
+ 
+ - The logistic regression model for impairment also observed better prediction at earlier time points with decreasing precision due to an increased proportion of false positives
+ 
+ - Although there was a drop in predictive capacity when forecasting final observations for the CDR model, it was also more subdued in the classification model relative to the variance increase seen in the CPAD model for ADAS-Cog
+ 
+ - Regardless, both models performed reasonably well given their limited covariate sets but clearly displayed room for improvement in predictive ability
+ 
+ 
+
+---
+
+<h2 style="font-size: 40px; margin-bottom: 5px">ML/SL Comparison - ADAS Regression</h2>
+
+```{r, echo=F}
+comp_curr_base <- comp_table[[1]]$RMSE
+caption_curr <- "RMSE"
+
+#comp_curr_base <- remake_comp_table(comp_curr_base)
+
+comp_curr <- 
+  knitr::kable(comp_curr_base, "html", 
+               align = rep("c", ncol(comp_curr_base)),
+               escape = FALSE, linesep = "",
+               caption = paste0("<div style=\"color:black; font-size:32px\">", caption_curr, "</div>")
+               )
+comp_curr <- row_spec(comp_curr, c(1:nrow(comp_curr_base)), extra_css = "vertical-align: middle !important;")
+comp_curr <- column_spec(comp_curr, 1, bold=T)
+comp_curr <- kable_styling(comp_curr, font_size=16, full_width = FALSE)
+
+comp_curr
+```
+
+
+
+---
+
+
+<h2 style="font-size: 42px">Approach - Hyperparameter Evaluation</h2>
+
+<div style="align-text: center">ADAS MERF Example</div>
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+merf.dir <- paste0(dir.base, "MERF/From Cheaha/_targets/objects/")
+
+adas_hyper <- readRDS(paste0(merf.dir, "merf_adas_hyper_results"))
+
+boot_curr <- boot_dat[["merf"]]
+
+```
+
+
+```{r, echo=F, fig.width=9, fig.height=4.5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+adas_hyper_curr <- plot_hyper_rebuild(adas_hyper$plot$data)
+adas_hyper_curr
+```
+$~$
+```{r, echo=F}
+tab_curr_base <- tab_proc_hyper(adas_hyper$best[,-1])
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("cccc"),
+               escape=F, linesep="")
+tab_curr <- kable_styling(tab_curr, font_size=16, full_width =F)
+
+tab_curr
+
+```
+
+---
+
+
+## Approach - Hyperparameter Evaluation
+
+<div style="align-text: center">CDR - MERF Example</div>
+```{r, echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+
+cdr_hyper <- readRDS(paste0(merf.dir, "merf_cdr_hyper_results"))
+
+```
+
+
+```{r, echo=F, fig.width=9, fig.height=4.5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+cdr_hyper_curr <- plot_hyper_rebuild(cdr_hyper$plot$data)
+cdr_hyper_curr
+```
+$~$
+```{r, echo=F}
+tab_curr_base <- tab_proc_hyper(cdr_hyper$best[,-1])
+tab_curr <- 
+  knitr::kable(tab_curr_base, "html",
+               align = c("cccc"),
+               escape=F, linesep="")
+tab_curr <- kable_styling(tab_curr, font_size=16, full_width =F)
+
+tab_curr
+
+```
+
+
+---
+## Acknowledgements
+
+***Talent wins games, but teamwork and intelligence win championships***  
+&nbsp;&nbsp;- Michael Jordan
+
+.pull-left[
+<u>Committee</u><div style="margin-bottom: -15px;"></div>
+- Jeff Szychowski, PhD
+- Richard Kennedy, MD, PhD
+- Byron Jaeger, PhD
+- Erik Roberson, MD, PhD
+- Gary Cutter, PhD
+]
+
+.pull-right[
+Alzheimer's Disease Research Center
+
+Center for Neurodegeneration and Experimental Therapeutics
+
+The faculty, staff and students in the Department of Biostatistics
+
+]
+
+
+```{r out.width="90%", echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+knitr::include_graphics("Images/UAB.png")
+```
+
+
+
+
+
+
+
+
+

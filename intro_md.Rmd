@@ -1,0 +1,871 @@
+---
+title: "Applications of Longitudinal Machine Learning Methods in Multi-Study<br>Alzheimer’s Disease Datasets"
+subtitle: "PhD Dissertation Defense for<br>Doctorate Degree in Biostatistics"
+author: "Chad Murchison"
+institute: "Department of Biostatistics<br>Alzheimer's Disease Research Center"
+date: "11/10/2021"
+output:
+  xaringan::moon_reader:
+    css: [default, robot, robot-fonts, extra.css]
+    mathjax: "https://cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_HTMLorMML"
+    lib_dir: libs
+    nature:
+      titleSlideClass: ["center", "middle"]
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+suppressPackageStartupMessages({
+  library(shiny)
+  library(knitr)
+  library(kableExtra)
+  library(ggplot2)
+})
+
+options(knitr.kable.NA = '')
+opts_chunk$set(tidy = FALSE)
+
+boot_dat <- readRDS("boot_data.rds")
+comp_table <- readRDS("boot_compare.rds")
+
+theme_explorer <- 
+  ggplot2::theme_bw() + 
+  ggplot2::theme(legend.title=ggplot2::element_blank(), legend.background=ggplot2::element_blank(), legend.position="bottom") + 
+  ggplot2::theme(plot.title=ggplot2::element_text(hjust=0.5, size=24)) +
+  ggplot2::theme(axis.title=ggplot2::element_text(size=18), axis.text=ggplot2::element_text(size=14)) + 
+  ggplot2::theme(legend.text=ggplot2::element_text(size=12))
+
+theme_manus <- 
+  ggplot2::theme_classic() + 
+  ggplot2::theme(legend.title=ggplot2::element_blank(), legend.background=ggplot2::element_blank(), legend.position="bottom") + 
+  ggplot2::theme(plot.title=ggplot2::element_text(hjust=0.5, size=24)) +
+  ggplot2::theme(axis.title=ggplot2::element_text(size=18), axis.text=ggplot2::element_text(size=11)) + 
+  ggplot2::theme(legend.text=ggplot2::element_text(size=12))
+
+
+
+
+
+#Some table processing functions
+
+table_proc_cont <- function(.tab){
+  
+  .tab$Value <- round(.tab$Value, 3)
+  
+  .out <- data.frame(Time=unique(.tab$time))
+  .out$RMSE <- .tab$Value[.tab$Metric=="RMSE"]
+  .out$MAE <- .tab$Value[.tab$Metric=="Median AE"]
+  .out$Bias <- .tab$Value[.tab$Metric=="Bias"] * -1
+  
+  
+  rownames(.out) <- NULL
+  return(.out)
+}
+
+
+
+table_proc_cat <- function(.tab){
+  
+  .tab$Value <- round(.tab$Value, 4)
+  
+  .out <- data.frame(Time=unique(.tab$time))
+  .out$Accuracy <- .tab$Value[.tab$Metric=="Accuracy"]
+  .out$Precision <- .tab$Value[.tab$Metric=="Precision"]
+  .out$Recall <- .tab$Value[.tab$Metric=="Recall"]
+  .out$AUC <- .tab$Value[.tab$Metric=="AUC"]
+  
+  if("NRI" %in% .tab$Metric) .out$NRI <- .tab$Value[.tab$Metric=="NRI"]
+  
+  rownames(.out) <- NULL
+  return(.out)
+  
+  
+}
+
+
+tab_proc_hyper <- function(.tab){
+  .tab$Value <- round(.tab$Value, 4)
+  .tab$Value[.tab$Metric=="Bias"] <- .tab$Value[.tab$Metric=="Bias"] *-1
+  colnames(.tab) <- c("Metric", "Value", "Hyperparameters")
+  
+  if(length(grep("layer_count", .tab$Hyperparameters))>0){
+    .tab$Hyperparameters <- gsub("(dense|cnn|lstm)_[1-3]_(activ|kern_constraint|bias_constraint|pool_size|kernel_size)(.*?)(;|NULL|relu)", "", .tab$Hyperparameters)
+    .tab$Hyperparameters <- gsub(";\\s*;", ";", .tab$Hyperparameters)
+  }
+  
+  rownames(.tab) <- NULL
+  return(.tab)
+  
+}
+
+metric_list <- list(old_col = c("RMSE", "Median AE", "Bias", "Accuracy", "Precision", "Recall", "AUC"),
+                     new_col = c("RMSE", "MAE", "AV Bias", "Accur", "Prec", "Recall", "AUC"))
+
+tab_proc_boot <- function(.boot, .pred, .ref, drop_time = TRUE){
+  .boot$Diff <- round(.boot$Diff, 3)
+  .boot$Prop_diff <- gsub(" ", "", .boot$Prop_diff)
+  .boot$Boot_p <- gsub(" ", "", .boot$Boot_p)
+  
+  .pred$Value <- round(.pred$Value, 3)
+  .ref$Value <- round(.ref$Value, 3)
+  
+  if("Bias" %in% .pred$Metric){
+    .pred$Value[.pred$Metric]
+  }
+  
+   if("NRI" %in% .pred$Metric){
+     nri_curr <- paste0("NRI: ", .pred$Value[.pred$Metric == "NRI"])
+   }
+  
+  .boot <- .boot[.boot$Metric %in% metric_list$old_col,]
+  .pred <- .pred[.pred$Metric %in% metric_list$old_col,]
+  .ref <- .ref[.ref$Metric %in% metric_list$old_col,]
+  
+  .boot$Metric <- metric_list$new_col[which(metric_list$old_col %in% .boot$Metric)]
+  .pred$Metric <- metric_list$new_col[which(metric_list$old_col %in% .pred$Metric)]
+  .ref$Metric <- metric_list$new_col[which(metric_list$old_col %in% .ref$Metric)]
+  
+  
+  if(drop_time == TRUE){
+    .boot <- .boot[,-which(colnames(.boot)=="time")]
+    .pred <- .pred[,-which(colnames(.pred)=="time")]
+    .ref <- .ref[,-which(colnames(.ref)=="time")]
+  }
+  
+    
+  .out <- data.frame(Metric = .pred$Metric, V2 = .pred$Value, V3 = .ref$Value, .boot[,colnames(.boot) %in% c("Diff", "Prop_diff", "Boot_p")])
+  colnames(.out) <- c("Metric", "ML Model", "Ref Model", "Delta", "Perc Diff", "Boot P")
+  rownames(.out) <- NULL
+  
+  if(exists("nri_curr")){
+    return(list(tab = .out, NRI = nri_curr))
+  } else  return(list(tab = .out))
+}
+
+
+
+
+
+
+#Functions to rebuild the plots from the ggplot data
+
+
+
+plot_diff_adas_rebuild <- function(.dat){
+  
+  group_var <- "time"
+  outcome <- "ADASTOTAL11"
+  plot_curr <- 
+  ggplot(data=.dat, aes_string(x = "time", y = "diff")) + 
+        geom_point(aes(color = misclass), position = position_jitter(width=0.15), size = 2) + 
+        geom_hline(yintercept = 0, color = "red") + 
+        geom_errorbar(stat = "summary", fun.data = "mean_sdl", fun.args = list(mult=1), width = 0.2, size = 1.25, alpha = 0.45) + 
+        stat_summary(fun = mean, geom = "point", shape = 45, size = 18) +
+        
+        scale_x_continuous(name = "Years", breaks = c(0:100), labels=c(0:100)) + 
+        scale_y_continuous(name = paste0("ADAS-Cog:", " Predict - Actual")) +
+        scale_color_brewer(type = "qual", palette = "Set1") +
+        expand_limits(x = c(min(.dat[[group_var]], max(.dat[[group_var]])))) + 
+        
+        theme_explorer
+  
+  return(plot_curr)
+}
+
+plot_pred_adas_rebuild <- function(.dat){
+  
+  outcome <- "ADASTOTAL11"
+  group_var <- "time"
+  
+   plot_curr <- 
+        ggplot(data = .dat, aes_string(x = group_var, y = outcome)) + 
+        geom_point(aes(color = Type), position = position_jitterdodge(dodge.width=0.20), size=2) +
+        geom_errorbar(aes(group = Type), stat = "summary", fun.data = "mean_sdl", fun.args = list(mult = 1), position = position_dodge(width=0.20), width = 0.2, size = 1.25, alpha = 0.45) + 
+        stat_summary(aes(group = Type), fun = mean, geom = "point", shape = 45, size = 18, position = position_dodge(width=0.20)) + 
+        
+        scale_color_manual(values = RColorBrewer::brewer.pal(3, "Dark2")[1:2], labels=c("Actual", "Predicted")) + 
+        scale_x_continuous(name = "Years", breaks = c(0:100), labels=c(0:100)) + 
+        scale_y_continuous(name = "ADAS-Cog 11") + 
+        expand_limits(x = c(min(.dat[[group_var]], max(.dat[[group_var]])))) + 
+        
+        theme_explorer
+      
+   return(plot_curr)
+  
+  
+}
+
+
+
+plot_diff_cdr_rebuild <- function(.dat, allrows){
+  group_var <- "time"
+  
+  plot_curr <- 
+        ggplot(data = .dat[!.dat$misclass == "Correct",], aes_string(x = group_var)) + 
+        geom_bar(aes(y=(..count..)/(sum(..count..) + (allrows - nrow(.dat))), fill = misclass), position = position_dodge(0.40), width = 0.35, color = "black") + 
+        
+        scale_fill_brewer(breaks = c("False Positive", "False Negative"), type = "qual", palette = "Set1") + 
+        scale_y_continuous(name = "Proportion misclassified", labels = scales::percent_format()) + 
+        scale_x_continuous(name = "Years", breaks=c(0:100), labels=c(0:100)) + 
+        expand_limits(x = c(min(.dat[[group_var]], max(.dat[[group_var]])))) + 
+        
+        theme_explorer
+  
+  return(plot_curr)
+}
+
+
+plot_pred_cdr_rebuild <- function(.dat){
+  group_var <- "time"
+  outcome <- "CDRSTAT"
+  
+  plot_curr <- 
+      ggplot(data = .dat[.dat[[outcome]]!=0,], aes_string(x = group_var,)) + 
+      geom_bar(aes(fill = Type), position = position_dodge(0.40), width = 0.35, color = "black") + 
+      
+      scale_fill_manual(values = RColorBrewer::brewer.pal(3, "Dark2")[1:2], labels=c("Actual", "Predicted"), drop = FALSE) + 
+      scale_y_continuous(name = "N Impaired (CDR 0.5+)") + 
+      scale_x_continuous(name = "Years", breaks=c(0:100), labels=c(0:100)) +
+      expand_limits(x = c(min(.dat[[group_var]], max(.dat[[group_var]])))) + 
+        
+      theme_explorer
+      
+  return(plot_curr)
+}
+
+
+
+
+
+
+```
+
+
+## Outline
+.large[
+- Overview, objectives and aims
+
+- Approach and design
+
+- Ensemble tree methods
+
+- Sequential neural networks
+
+- Trajectories, forecasting, and imputation
+
+- Final thoughts
+
+]
+
+---
+
+## Overview - Inference/Prediction
+
+
+As a field, the goal of statistics is to learn from our data, commonly using inference and prediction; although intrinsically related there are subtle differences in how these methods are leveraged
+
+
+
+.pull-left[
+.large[Inference]
+
+- Use the model to learn about the data generation process
+
+- Explain the relationship between a response and covariates
+
+- Frequently emphasizes unbiased interpretation of this relationship
+
+- Is often then standard approach for biostatisticians
+
+]
+
+
+.pull-right[
+
+.large[Prediction]
+
+- Use the model to determine likely outcomes from the data
+
+- Role of covariates is to aid in calculating a response
+
+- Emphasis on generalization to unseen data 
+
+- Largely the purview of machine/statistical learning (ML/SL)
+
+]
+
+---
+
+## Overview - Machine Learning
+
+As computational power and data management capacity have increased, machine learning has found greater popularity across a range of applications in a number of different fields such as finance, transportation and medicine
+
+.pull-left[
+
+- Imagine processing
+
+- Identification / Classification
+
+- Intelligent agents
+
+- Natural language processing
+
+- Text mining
+
+- Decision support
+
+]
+
+
+.pull-right[
+
+```{r out.width="85%", out.height="85%", echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+knitr::include_graphics("Images/ML_App.png")
+```
+
+]
+
+
+One area attempting to utilize its extensive neuroimaging, genetic, biomarker, and clinical/demographic profiling for ML is Alzheimer's disease (AD) and its related dementias
+
+.footnote[https://www.quora.com/What-are-some-real-world-examples-of-applications-of-machine-learning-in-the-field]
+
+---
+
+
+
+layout: false
+
+<h2 style="margin-bottom: 10px;">Overview - Alzheimer's Disease</h2>
+
+.pull-left[
+
+```{r echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+knitr::include_graphics("Images/AD_data_AL.png")
+```
+
+]
+
+.pull-right[
+
+With the ever-aging population, AD has become an increasingly prominent medical concern at the global, national and local level
+
+Accompanying the cost and pervasiveness is a recognition to better identify and treat patients in advance
+
+This includes both actual measures of ability across the spectrum of cognitive domains or predicting impairment
+
+Prediction is key as the pathological and biological hallmarks of AD precede cognitive disability substantially
+
+]
+
+
+<p style="padding-top: 10px; text-align: center;">This makes AD ideal for machine learning applications</p>
+
+.footnote[https://alz.org/alzheimers-dementia/facts-figures]
+
+---
+
+
+
+## Overview - ML/SL and AD
+
+Recognition of the potential of ML/SL in AD is clear; a PubMed search of "machine learning" and "Alzheimer's disease" returned 1355 results with 330 in 2020 alone while arxiv.org cited another 230+ articles.  However, substantial limitations remain:
+
+ - Models focus on clinical diagnosis as a classification response with little effort to predict neuropyschological outcomes directly; this invariably emphasizes clinician judgment over arguably more objective measures of impairment
+ 
+ - Nearly all ML/SL applications in AD use methods which are cross-sectional in nature and designs that directly leverage or account for subject-specific effects, repeated measures, and serial correlation are comparatively uncommon; a literature review in 2021 found only 8% of 65 reviewed article explicitly used longitudinal methods
+ 
+ - Assessment and evaluation are limited with respect to direct model-to-model comparison as novel paradigms are developed; evaluation metrics such as accuracy are typically reported only for variations on the proposed ML/SL model and reference designs are almost never considered as baselines
+
+
+.footnote[Kumar S et. al. <i>JAMIA Open</i>. 2021.  4(3): 1-10.]
+
+---
+
+
+## Overview - Objectives
+
+This dissertation sought to remedy these deficiencies by comprehensively comparing the predictive capacity of a variety of longitudinal extensions of ML/SL techniques in a harmonized multi-study dataset of Alzheimer's disease
+
+- Two classes of responses, one continuous and one binary categorical, were considered to contrast model ability for both regression and classification across cognitive outcomes with specific clinical and research contexts
+
+- Several distinct model designs were evaluated inlcuding standard inferential methods as reference, well-characterized ensemble methods, and adaptations of sequential deep-learning designs to work with time-dependent data
+
+- Special consideration was given to the development of both whole subject trajectories *de novo* as well as forecasting of final observations specifically utilizing previously observed participant data
+
+Together this research addressed the questions of which longitudinal ML/SL methods give the best performance for AD outcomes, was prediction superior to inferential standards, and what was the impact of subject-specific effects
+
+---
+
+
+## Specific Aims 
+
+To meet these objectives, the dissertation was composed of three primary aims:
+
+<b>Aim 1</b>
+
+Assessment of the predictive performance for a variety of discriminative ensemble methods with adaptations specific to longitudinal data when applied to AD specific outcomes.  The models under consideration were:
+
+1. Mixed-effects random forest (MERF) with sampling from the feature space
+
+2. Bootstrap aggregated (bagged) mixed-effects trees with a standard non-bagged GLMER tree as reference
+
+3. Sequential boosting of residuals on mixed-effects trees (boosted)
+
+Specifically, what were the regression and classification metrics for these models, were they superior to the inferential references, how did the rank against each other, and were these patterns different when outcomes were predicted as trajectories versus forecasting of observations 
+
+
+---
+
+## Specific Aims 
+
+<b>Aim 2</b>
+
+To contrast against the predictive ability of the ensemble methods using longitudinal extensions of deep-learning neural network model designs. This was structured around the sequential neural networks with wider use in fields such as image recognition and natural language processing and use their natural extensions to time-dependent data.  The methods under consideration are: 
+
+1. Long short-term memory recurrent neural networks (LSTM RNN)
+
+2. One-dimensional convolutional neural networks (CNN)
+
+3. A multi-layer perceptron / feed-forward neural network as a reference (FNN)
+
+Similar pipelines were carried out for the neural network designs to determine superiority in regression and classification tasks against the inferential references and among themselves and to see if these were consistent when predicting either whole trajectories or forecasting future observations
+
+---
+
+## Specific Aims
+
+<b>Aim 3</b>
+
+Using repeated measures in longitudinal data allows for special consideration of the role of subject-specific effects on prediction which also holds for some longitudinal machine learning methods.  Assessment of the impact subject-specific effects have on generating whole outcome trajectories and forecasting investigated:
+
+1. Suppression of subject-specific effects to only use population-level covariates
+
+2. Imputation of subject-specific effects based on model parameterizations
+
+3. Directly leveraging subject-specific effects when forecasting future observations based on prior data
+
+Superiority in regression-based prediction metrics was compared among a pre-parameterized reference, an equivalent regression model built *de novo*, and the MERF ensemble method with ML models and across subject-specific effect designs
+
+
+
+
+
+
+
+
+---
+
+## Approach - Outcomes
+
+For a more comprehensive evaluation, both a continuous and categorical outcome were used to assess prediction using regression and classification
+
+**Continuous outcome for regression**  
+**Alzheimer's disease assessment scale - cognitive sub-scale (ADAS-Cog)**
+- An assessment battery to evaluate memory, reasoning, orientation, and language with a continuous 70 point scale with higher scores indicative of greater levels of impairment
+- Commonly used as an outcome in clinical trial settings as a more refined assessment of global and domain specific cognition
+- Similar to other neuropsychological assessments like the MocA and MMSE has higher resolution with greater levels of impairment giving it greater capacity to distinguish severity among the impaired but loses sensitivity when assessing the cognitively intact
+
+
+```{r out.width="55%", echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+knitr::include_graphics("Images/ADAS_1.png")
+```
+
+  
+---
+
+## Approach - Outcomes
+
+For a more comprehensive evaluation, both a continuous and categorical outcome were used to assess prediction using regression and classification
+
+**Categorical outcome for classification**  
+**Impairment status from the Clinical Dementia Rating (CDR)**
+- A five-point scale characterizing six domains of both cognitive and functional performance (Memory, Orientation, Judgment, Community Affairs, Home & Hobbies, Personal Care)
+- Used as diagnostic tool in clinical settings and a metric in dementia studies
+- Global scores of 0.5 indicate "very mild" or "questionable" dementia with higher scores (1, 2, 3) noting increasing degrees of dementia
+- For this research, a score of 0.5 was taken breakpoint to create a binary variables (non-impaired vs impaired) to give a classification emphasizing earlier stages of decline
+
+
+```{r out.width="85%", echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+knitr::include_graphics("Images/CDR_1.png")
+```
+
+  
+
+---
+
+
+## Approach - Reference Models
+
+
+Beyond cross-model comparisons, traditional inferential mixed-effects regression models were used as reference designs with parameterizations taken outside the dataset used for ML/SL model training and testing
+
+**CPAD parameterization for ADAS-Cog**
+
+ * Simulation model presented in 2012 used for generation of synthetic clinical trial cohorts with a focus on AD intervention
+ * Used mixed-effect beta regression for ADAS-Cog progression based on baseline age, sex, APOE4 carrier status, and baseline MMSE
+ * Provides both fixed effect parameters for population covariates and random effects variances for intercept and slope
+ * Although primarily tuned to predict ADAS-Cog out to two years in linear time has also been used for wider time frames
+
+```{r out.width="65%", echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+knitr::include_graphics("Images/CPAD_1.png")
+```
+
+
+---
+
+## Approach - Reference Models
+
+
+Beyond cross-model comparisons, traditional inferential mixed-effects regression models were used as reference designs with parameterizations taken outside the dataset used for ML/SL model training and testing
+
+**CDR impairment status built ad hoc**
+
+ * Built using mixed-effects logisitic regression using a holdout subset of the multi-study database
+ * Follows the same parameterization scheme as the CPAD ADAS-Cog model with population-level covariates and subject-specific random effects
+ * Exception is unlike CPAD there is no time-MMSE interaction which was found to impede model convergence due to overfitting
+ * Unstructured random effects design with intercept and slope and a covariance term between the components
+
+
+
+---
+
+## Approach - Reference Models
+
+In Aim 3, the role of pre-determined parameters for random effects were evaluated in the ADAS-Cog to investigate how imputation or suppression of random effects impacted variance and bias when predicting both whole trajectories and observational forecasting
+
+In addition to the CPAD reference model, a *de novo* beta regression model was built directly from the data to update the random effects components and include an unstructured correlation term, as well as the MERF ML model which contains a similar random effects component
+
+This aim was specifically constructed to address a recommendation of the CPAD simulation software to impute random effects when generating synthetic cohorts for feasibility with implications of improved generalization
+
+```{r out.width="75%", echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+knitr::include_graphics("Images/CPAD_2.png")
+```
+
+.footnote[Polhamus DG and Rogers JA. Simulating Clinical Trials in Alzheimer's Disease.]
+
+---
+
+
+## Approach - Meta-database
+
+ - Assembled from the control participants of 18 AD clinical trials as part of the Alzheimer's Disease Cooperative Study (ADCS) and the four phases of the Alzheimer's Disease Neuroimaging Initiative (ADNI) observational study
+ 
+ - Full dataset includes 8936 unique participants with almost 47000 time points with some data extending out to 12 years of follow-up
+
+```{r echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+knitr::include_graphics("Images/adcs_studies.png")
+```
+
+ - Harmonization of the dataset mapped disparately coded visits to a continuous temporal variable based on study date and included participants with only baseline data for single visit subjects and screen failures (N=2392)
+ 
+ - Feature space based on minimal dataset required by CPAD and other measures potentially associated with cognitive impairment and high coverage
+  * Baseline characteristics: age, sex, race (3 level), ethnicity (2 level), education (5 level), use of anti-dementia medication, APOE4 allele count
+  * Time-dependent covariates: MMSE score, weight, blood pressure
+ 
+ 
+---
+
+## Approach - Data Preparation
+
+```{r echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+knitr::include_graphics("Images/adcs_flow.png")
+```
+
+
+---
+
+## Approach - Validation Sets
+
+
+```{r echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+knitr::include_graphics("Images/adcs_flow_2.png")
+```
+
+
+
+---
+
+## Approach - Pipeline Flow
+
+```{r echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+knitr::include_graphics("Images/ML_flow.png")
+```
+
+
+
+
+---
+
+## Approach - Ensemble Methods
+
+<h3 style="margin-top: -15px; margin-bottom: 0px">Bagging on GLMER Trees</h3>
+
+.pull-left[
+
+- Randomly samples participants from the training dataset and use out-of-bag samples for validation 
+
+- Tree pruning is not necessary, instead results are averaged over the collections trees
+
+- Building of the mixed-effects trees was implemented using the <i>glmertree</i> package in R
+
+- Modified script was developed to conduct the bootstrap aggregation with a single, non-bagged tree as reference
+]
+
+.pull-right[
+
+
+```{r out.width="90%", echo=F, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+knitr::include_graphics("Images/bagging.jpg")
+```
+
+]
+
+.footnote[https://www.kdnuggets.com/2019/09/ensemble-learning.html]
+
+---
+
+## Approach - Ensemble Methods
+
+<h3 style="margin-top: -15px; margin-bottom: 0px">Boosting on Mixed-Effect Trees</h3>
+
+
+.pull-left[
+
+- Instead of sampling from participants during training, the entire training set is used but the data is modified before being iteratively fit to a new tree
+
+- Hyperparameters are important during cross-validation including number of trees, interaction depth, and the rate of learning across tree iterations
+
+- Boosting on the trees was conducted using the <i>gbm</i> package in R with support for the clustering of longitudinal design via the <i>mvtboost</i> package
+
+]
+
+.pull-right[
+
+
+```{r out.width="75%", echo=F, fig.align='right', out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+knitr::include_graphics("Images/boosting.jpg")
+```
+
+]
+
+.footnote[https://www.kdnuggets.com/2019/09/ensemble-learning.html]
+
+
+
+---
+
+## Approach - Ensemble Methods
+
+
+<h3 style="margin-top: -15px; margin-bottom: 0px">Mixed-effect random forest</h3>
+
+- Instead of randomly sampling the dataset as in bagging, random forests sample from the feature space to make the trees uncorrelated
+
+- For the random forest decision making is similar, taken as the average/majority vote across all trees
+
+- Subject-specific components are implemented in the leaf nodes of the trees with mixed-effects models for clusters
+
+- Implementation used the <i>LongituRF</i> package in R with modifications to allow for direct control over how the random effects components were utilized
+
+
+```{r out.width="55%", echo=F, fig.align='right', out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+knitr::include_graphics("Images/rand_forest.png")
+```
+
+.footnote[https://syncedreview.com/2017/10/24/]
+
+---
+
+## Approach - Ensemble Methods
+
+<h3 style="margin-top: -15px; margin-bottom: 0px">General ensemble considerations</h3>
+
+- For all trees, objective functions were optimized using the squared error loss for regression and cross-entropy loss for classification
+
+- Hyperparameter tuning involved features such as number of trees, tree depths, number of observations in leaf nodes, tuning rate (boosting), and sampled proportion size (boosting, bagging) using 10x cross-fold validation
+
+- Modification to the <i>LongituRF</i> package was necessary to allow for direct access to the subject-specific components in the leaf nodes to allow for evaluation of suppression, imputation, and fitting of random effects in the MERF model 
+
+```{r out.width="50%", echo=F, fig.align='right', out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+knitr::include_graphics("Images/pretty_tree.png")
+```
+
+.footnote[https://www.slideshare.net/DeepakGeorge5/]
+
+
+---
+
+
+## Approach - Neural Networks
+
+<h3 style="margin-top: -15px; margin-bottom: 0px">Feed Forward Neural Networks</h3>
+
+
+.pull-left[
+
+- To compare against the sequential deep learning adaptations, a standard multi-layer perceptron was built as a control design
+
+- Simply considered time as another covariate and views each observation as independent; akin to using an OLS model for longitudinal data
+
+- Hyperparameters were more limited, restricted to number of layers, nodes per layer, and constraint on both the kernel and bias functions
+
+
+]
+
+
+.pull-right[
+
+
+```{r out.width="85%", echo=F, fig.align='right', out.extra='style="margin-left: auto; margin-right:auto; display: block; margin-top: auto; margin-bottom: auto; vertical-align: middle"'}
+knitr::include_graphics("Images/FNN_1.png")
+```
+
+
+]
+
+
+
+.footnote[https://scikit-learn.org/stable/modules/neural_networks_supervised.html]
+
+---
+
+
+## Approach - Neural Networks
+
+<h3 style="margin-top: -15px; margin-bottom: 0px">LSTM Recurrent Neural Networks</h3>
+
+- The LSTM RNN has origins in machine translation and NLP using previously observed words to generate subsequent points
+
+- The unidirectional behavior extends naturally to time-dependent data and uses prior sequence information along with the current input 
+
+- Hyperparameters also include the activation weights for the forget/retention gates of the LSTM unit which aids with the "vanishing gradient" problem
+
+
+
+```{r out.width="65%", echo=F, fig.align='right', out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+knitr::include_graphics("Images/rnn_lstm.png")
+```
+
+
+---
+
+## Approach - Neural Networks
+
+<h3 style="margin-top: -15px; margin-bottom: 0px">1D Convolutional Neural Networks</h3>
+
+
+.pull-left[
+
+- Instead of retaining varying amounts of prior data, CNNs use a sliding window (kernel) to extract smaller contiguous sequences
+
+- Developed in image processing with sliding windows for feature extraction, 1D extension instead shift along a temporal axis
+
+- Training alternates between convolution (local features) and pooling (combining convolutions) to reduce dimensionality of the feature sets before using a fully connected network for prediction
+
+
+
+]
+
+
+.pull-right[
+
+```{r out.width="100%", fig.show='as.is', echo=F, out.extra='style="margin-left: auto; margin-right:auto; margin-left: auto; display: block;"'}
+knitr::include_graphics(c("Images/cnn_1.png"))
+```
+
+```{r out.width=c("50%"), fig.show='hold', echo=F, out.extra='style="margin-top: auto; margin-bottom:auto; margin-right: auto; margin-left: auto; display: block;vertical-align: middle;"'}
+knitr::include_graphics(c("Images/cnn_2.png"))
+```
+
+```{r out.width=c("850%"), fig.show='hold', echo=F, out.extra='style="margin-top: auto; margin-bottom:auto; margin-right: auto; margin-left: auto; display: block;vertical-align: middle;"'}
+knitr::include_graphics(c("Images/cnn_3.png"))
+```
+
+
+]
+
+
+
+---
+
+## Approach - Neural Networks
+
+<h3 style="margin-top: -15px; margin-bottom: 0px">General network considerations</h3>
+
+
+- Due to the iterative nature of the sequential models, LSTM RNN and 1D CNN had outcomes at time 0 predicted from a FNN built using baseline data prior to sequential prediction when predicting whole trajectories
+
+- All models used standard build methods with connection weights calculated using stochastic gradient descent during back propagation and facilitated by the rectified linear unit activation function with MSE and CE as the loss functions using 10x cross-fold validation
+
+- R does not have native neural network functionality, instead it interfaces with an installation of Python using the <i>reticulate</i> package with network building via <i>TensorFlow</i> using <i>keras</i> as a facilitating API
+
+
+```{r out.width="45%", echo=F, fig.align='right', out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
+knitr::include_graphics("Images/rnn_relu.png")
+```
+
+
+
+---
+
+
+<h2 style="margin-bottom: -10px;">Approach - Methods Comparison</h2>
+
+After hyperparameter tuning and model selection, predictions were carried out on the validation test sets for whole trajectories and last observation forecasting using the following evaluation metrics:
+
+.pull-left[
+
+**Regression on ADAS-Cog**
+
+- Root mean square error
+
+- Median absolute error
+
+- Prediction bias<br>(absolute value)
+
+
+]
+
+.pull-right[
+
+**CDR Impairment Classification**
+
+- Accuracy / Precision / Recall
+
+- ROC-based AUC
+
+- Net Reclassification Index<br>against reference design
+
+]
+
+To identify superiority of performance, both absolute differences and percent changes in metrics were calculated compared to the reference models as well as against each other
+
+Additionally, 1000-fold bootstrapping was carried out to build representative distributions and calculate proportion-based p-values to determine whether the observed changes in metrics were statistically significant
+
+
+
+---
+
+<h2 style="font-size: 44px;">Reference - ADAS CPAD Trajectories</h2>
+
+---
+<h2 style="font-size: 40px;">ML/SL Comparison - ADAS Regression</h2>
+
+---
+
+<h2 style="font-size: 40px;">Aim 3 - Synth Data Design Comparison</h2>
+
+---
+
+
+
+
+
+
+
+
+
+
