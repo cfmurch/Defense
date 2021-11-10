@@ -25,7 +25,9 @@ table_proc_cont <- function(.tab, .type=FALSE, drop_2_5 = FALSE){
 summ_dict <- list(tree_names = c("MERF", "Single\nGLMM", "Bagged\nGLMM", "Boosted"),
                   nn_names = c("FNN", "1D CNN", "LSTM RNN"),
                   cont_vars = c("RMSE", "Median AE", "Bias", "AV Bias"),
-                  cat_vars = c("Accuracy", "Precision", "Recall", "AUC"))
+                  cat_vars = c("Accuracy", "Precision", "Recall", "AUC"),
+                  cont_names = c("RMSE", "Mean AE", "Bias", "AV Bias"),
+                  cat_names = c("Accuracy", "Precision", "Recall", "ROC AUC"))
 
 table_summ_build <- function(.dat, .ref){
   
@@ -34,27 +36,34 @@ table_summ_build <- function(.dat, .ref){
   
   if("Bias" %in% .ref[[1]]$All$Metric){
     vars_curr <- summ_dict[["cont_vars"]]
+    vars_names <- summ_dict[["cont_names"]]
     ml_names <- c("CPAD\nReference", ml_names)
   } else{
     vars_curr <- summ_dict[["cat_vars"]]
+    vars_names <- summ_dict[["cat_names"]]
     ml_names <- c("CDR\nLogistic", ml_names)
   }
   
   .out <- .ref[[1]]$All
   .out <- .out[,-which(colnames(.out) == "time")]
   if("Bias" %in% .out$Metric) .out$Value[.out$Metric == "Bias"] <- .out$Value[.out$Metric == "Bias"] * -1
-  .out$Value <- round(.out$Value, 3)
+  .out$Value <- sprintf("%.3f", round(.out$Value, 3))
   .out <- .out[which(.out$Metric %in% vars_curr),]
   
   .out_ml <- lapply(.dat, function(.ml){
     .ml <- .ml[[1]]$All
     .ml <- .ml[which(.ml$Metric %in% vars_curr),]
     if("Bias" %in% .ml$Metric) .ml$Value[.ml$Metric == "Bias"] <- .ml$Value[.ml$Metric == "Bias"] * -1
-    return(round(.ml$Value, 3))
+    return(sprintf("%.3f", round(.ml$Value, 3)))
   })
   .out_ml <- do.call(cbind.data.frame, .out_ml)
   .out <- cbind(.out, .out_ml)
-  colnames(.out)[which(colnames(.out)!="Metric")] <- ml_names
+  .out$Metric <- vars_names
+  .out <- do.call(cbind, lapply(.out, function(xx){as.character(xx)}))
+  .out <- rbind(c("Metric", ml_names), .out)
+  #colnames(.out)[which(colnames(.out)!="Metric")] <- ml_names
+  .out <- as.matrix(.out)
+  colnames(.out) <- NULL
   rownames(.out) <- NULL
   return(.out)
   
@@ -105,14 +114,15 @@ tab_proc_hyper <- function(.tab){
     .tab$Hyperparameters <- gsub(";\\s*cnn_2.*", "", .tab$Hyperparameters)
     .tab$Hyperparameters <- gsub("(dense_\\d)_units", "\\1", .tab$Hyperparameters)
   }
-  
+  .tab$Metric <- gsub("Median AE", "Mean AE", .tab$Metric)
+  .tab$Metric <- gsub("AUC", "ROC AUC", .tab$Metric)
   rownames(.tab) <- NULL
   return(.tab)
   
 }
 
 metric_list <- list(old_col = c("RMSE", "Median AE", "Bias", "AV Bias", "Accuracy", "Precision", "Recall", "AUC"),
-                    new_col = c("RMSE", "MAE", "Bias", "AV Bias", "Accur", "Prec", "Recall", "AUC"))
+                    new_col = c("RMSE", "MAE", "Bias", "AV Bias", "Accuracy", "Precision", "Recall", "ROC AUC"))
 
 tab_proc_boot <- function(.boot, .pred, .ref, .boot_ref, drop_time = TRUE, abs_bias = TRUE, use_boot_avg = FALSE){
   .boot_dat <- .boot$boot_data[.boot$boot_data$time=="All",]
@@ -178,7 +188,7 @@ tab_proc_boot <- function(.boot, .pred, .ref, .boot_ref, drop_time = TRUE, abs_b
   
   
   .out <- data.frame(Metric = .pred$Metric, V2 = .pred$Value, V3 = .ref$Value, .boot[,colnames(.boot) %in% c("Diff", "Prop_diff", "ci")])
-  colnames(.out) <- c("Metric", "ML Model", "Ref Model", "Delta Boot", "Perc Diff", "95% CI<br>Boot")
+  colnames(.out) <- c("Metric", "ML Model", "Ref Model", "Delta Boot", "Perc Diff", "95% CI Boot")
   rownames(.out) <- NULL
   
   if(exists("nri_curr")){

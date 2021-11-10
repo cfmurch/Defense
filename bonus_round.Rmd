@@ -342,7 +342,7 @@ plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
 
 ```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
 
-plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, (cdr_plot[[1]]$plot$data))
 
 ```
 
@@ -384,7 +384,7 @@ plot_pred_cdr_rebuild(cdr_plot_obs[[1]]$plot$data)
 
 ```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
 
-plot_diff_cdr_rebuild(cdr_plot_obs[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+plot_diff_cdr_rebuild(cdr_plot_obs[[1]]$diff$data, (cdr_plot[[1]]$plot$data))
 
 ```
 
@@ -465,8 +465,11 @@ tab_curr <-
   knitr::kable(adas_summ, "html",
                align = c("l",rep("c", ncol(adas_summ)-1)),
                escape=F, linesep="")
-#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
-tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr <- column_spec(tab_curr, 2, border_right = "4px solid red")
+tab_curr <- column_spec(tab_curr, 3, border_left = "4px solid red")
+tab_curr <- row_spec(tab_curr, 1, bold=T)
+tab_curr <- row_spec(tab_curr, seq(2,nrow(adas_summ),2), background = "white")
+tab_curr <- row_spec(tab_curr, seq(1,nrow(adas_summ),2), extra_css = "background-color: #EEEEEE")
 tab_curr
 ```
 
@@ -479,8 +482,11 @@ tab_curr <-
   knitr::kable(adas_summ_obs, "html",
                align = c("l",rep("c", ncol(adas_summ_obs)-1)),
                escape=F, linesep="")
-#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
-tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr <- column_spec(tab_curr, 2, border_right = "4px solid red")
+tab_curr <- column_spec(tab_curr, 3, border_left = "4px solid red")
+tab_curr <- row_spec(tab_curr, 1, bold=T)
+tab_curr <- row_spec(tab_curr, seq(2,nrow(adas_summ_obs),2), background = "white")
+tab_curr <- row_spec(tab_curr, seq(1,nrow(adas_summ_obs),2), extra_css = "background-color: #EEEEEE")
 tab_curr
 
 ```
@@ -1145,8 +1151,11 @@ tab_curr <-
   knitr::kable(cdr_summ, "html",
                align = c("l",rep("c", ncol(cdr_summ)-1)),
                escape=F, linesep="")
-#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
-tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr <- column_spec(tab_curr, 2, border_right = "4px solid red")
+tab_curr <- column_spec(tab_curr, 3, border_left = "4px solid red")
+tab_curr <- row_spec(tab_curr, 1, bold=T)
+tab_curr <- row_spec(tab_curr, seq(2,nrow(cdr_summ),2), background = "white")
+tab_curr <- row_spec(tab_curr, seq(1,nrow(cdr_summ),2), extra_css = "background-color: #EEEEEE")
 tab_curr
 ```
 
@@ -1159,8 +1168,11 @@ tab_curr <-
   knitr::kable(cdr_summ_obs, "html",
                align = c("l",rep("c", ncol(cdr_summ_obs)-1)),
                escape=F, linesep="")
-#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
-tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr <- column_spec(tab_curr, 2, border_right = "4px solid red")
+tab_curr <- column_spec(tab_curr, 3, border_left = "4px solid red")
+tab_curr <- row_spec(tab_curr, 1, bold=T)
+tab_curr <- row_spec(tab_curr, seq(2,nrow(cdr_summ_obs),2), background = "white")
+tab_curr <- row_spec(tab_curr, seq(1,nrow(cdr_summ_obs),2), extra_css = "background-color: #EEEEEE")
 tab_curr
 ```
 
@@ -1225,7 +1237,7 @@ plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
 
 ```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
 
-plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, (cdr_plot[[1]]$plot$data))
 
 ```
 
@@ -1286,7 +1298,7 @@ plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
 
 ```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
 
-plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, (cdr_plot[[1]]$plot$data))
 
 ```
 
@@ -1351,7 +1363,7 @@ plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
 
 ```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
 
-plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, (cdr_plot[[1]]$plot$data))
 
 ```
 
@@ -1412,7 +1424,7 @@ plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
 
 ```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
 
-plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, (cdr_plot[[1]]$plot$data))
 
 ```
 
@@ -1518,7 +1530,7 @@ plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
 
 ```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
 
-plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, (cdr_plot[[1]]$plot$data))
 
 ```
 
@@ -1579,7 +1591,7 @@ plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
 
 ```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
 
-plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, (cdr_plot[[1]]$plot$data))
 
 ```
 
@@ -1686,7 +1698,7 @@ plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
 
 ```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
 
-plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, (cdr_plot[[1]]$plot$data))
 
 ```
 
@@ -1747,7 +1759,7 @@ plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
 
 ```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
 
-plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, (cdr_plot[[1]]$plot$data))
 
 ```
 
@@ -1833,8 +1845,11 @@ tab_curr <-
   knitr::kable(adas_summ, "html",
                align = c("l",rep("c", ncol(adas_summ)-1)),
                escape=F, linesep="")
-#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
-tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr <- column_spec(tab_curr, 2, border_right = "4px solid red")
+tab_curr <- column_spec(tab_curr, 3, border_left = "4px solid red")
+tab_curr <- row_spec(tab_curr, 1, bold=T)
+tab_curr <- row_spec(tab_curr, seq(2,nrow(adas_summ),2), background = "white")
+tab_curr <- row_spec(tab_curr, seq(1,nrow(adas_summ),2), extra_css = "background-color: #EEEEEE")
 tab_curr
 ```
 
@@ -1847,8 +1862,11 @@ tab_curr <-
   knitr::kable(adas_summ_obs, "html",
                align = c("l",rep("c", ncol(adas_summ_obs)-1)),
                escape=F, linesep="")
-#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
-tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr <- column_spec(tab_curr, 2, border_right = "4px solid red")
+tab_curr <- column_spec(tab_curr, 3, border_left = "4px solid red")
+tab_curr <- row_spec(tab_curr, 1, bold=T)
+tab_curr <- row_spec(tab_curr, seq(2,nrow(adas_summ_obs),2), background = "white")
+tab_curr <- row_spec(tab_curr, seq(1,nrow(adas_summ_obs),2), extra_css = "background-color: #EEEEEE")
 tab_curr
 
 ```
@@ -2385,8 +2403,11 @@ tab_curr <-
   knitr::kable(cdr_summ, "html",
                align = c("l",rep("c", ncol(cdr_summ)-1)),
                escape=F, linesep="")
-#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
-tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr <- column_spec(tab_curr, 2, border_right = "4px solid red")
+tab_curr <- column_spec(tab_curr, 3, border_left = "4px solid red")
+tab_curr <- row_spec(tab_curr, 1, bold=T)
+tab_curr <- row_spec(tab_curr, seq(2,nrow(cdr_summ),2), background = "white")
+tab_curr <- row_spec(tab_curr, seq(1,nrow(cdr_summ),2), extra_css = "background-color: #EEEEEE")
 tab_curr
 ```
 
@@ -2399,8 +2420,11 @@ tab_curr <-
   knitr::kable(cdr_summ_obs, "html",
                align = c("l",rep("c", ncol(cdr_summ_obs)-1)),
                escape=F, linesep="")
-#tab_curr <- row_spec(tab_curr, c(1:nrow(tab_curr_base)), bold=T)
-tab_curr <- kable_styling(tab_curr, font_size=22, full_width =F)
+tab_curr <- column_spec(tab_curr, 2, border_right = "4px solid red")
+tab_curr <- column_spec(tab_curr, 3, border_left = "4px solid red")
+tab_curr <- row_spec(tab_curr, 1, bold=T)
+tab_curr <- row_spec(tab_curr, seq(2,nrow(cdr_summ_obs),2), background = "white")
+tab_curr <- row_spec(tab_curr, seq(1,nrow(cdr_summ_obs),2), extra_css = "background-color: #EEEEEE")
 tab_curr
 
 ```
@@ -2471,7 +2495,7 @@ plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
 
 ```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
 
-plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, (cdr_plot[[1]]$plot$data))
 
 ```
 
@@ -2532,7 +2556,7 @@ plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
 
 ```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
 
-plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, (cdr_plot[[1]]$plot$data))
 
 ```
 
@@ -2634,7 +2658,7 @@ plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
 
 ```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
 
-plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, (cdr_plot[[1]]$plot$data))
 
 ```
 
@@ -2695,7 +2719,7 @@ plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
 
 ```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
 
-plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, (cdr_plot[[1]]$plot$data))
 
 ```
 
@@ -2798,7 +2822,7 @@ plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
 
 ```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
 
-plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, (cdr_plot[[1]]$plot$data))
 
 ```
 
@@ -2859,7 +2883,7 @@ plot_pred_cdr_rebuild(cdr_plot[[1]]$plot$data)
 
 ```{r, echo=F, fig.width=7.5, fig.height=5, out.extra='style="margin-left: auto; margin-right:auto; display: block"'}
 
-plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, nrow(cdr_plot[[1]]$plot$data))
+plot_diff_cdr_rebuild(cdr_plot[[1]]$diff$data, (cdr_plot[[1]]$plot$data))
 
 ```
 
@@ -2976,7 +3000,7 @@ comp_curr
 
 ```{r, echo=F}
 comp_curr_base <- comp_table[[1]]$`Median AE`
-caption_curr <- "Median AE - Whole Trajectories"
+caption_curr <- "Mean AE - Whole Trajectories"
 
 #comp_curr_base <- remake_comp_table(comp_curr_base)
 
@@ -3002,7 +3026,7 @@ comp_curr
 
 ```{r, echo=F}
 comp_curr_base <- comp_table[[3]]$`Median AE`
-caption_curr <- "Median AE - Observation Forecasts"
+caption_curr <- "Mean AE - Observation Forecasts"
 
 #comp_curr_base <- remake_comp_table(comp_curr_base)
 
@@ -3305,7 +3329,7 @@ comp_curr
 
 ```{r, echo=F}
 comp_curr_base <- comp_table[[2]]$`AUC`
-caption_curr <- "AUC - Whole Trajectories"
+caption_curr <- "ROC AUC - Whole Trajectories"
 
 #comp_curr_base <- remake_comp_table(comp_curr_base)
 
@@ -3331,7 +3355,7 @@ comp_curr
 
 ```{r, echo=F}
 comp_curr_base <- comp_table[[4]]$AUC
-caption_curr <- "AUC - Observation Forecasts"
+caption_curr <- "ROC AUC - Observation Forecasts"
 
 #comp_curr_base <- remake_comp_table(comp_curr_base)
 
@@ -3390,7 +3414,7 @@ impute_table <- row_spec(impute_table, 1, extra_css = "border-top: 1px solid;")
 impute_table <- row_spec(impute_table, c(1:nrow(impute_table_base)), extra_css = "vertical-align: middle !important;")
 
 
-impute_table <- add_header_above(impute_table, c( " ", "RMSE" = 3, "Median AE" = 3, "AV Bias" = 3))
+impute_table <- add_header_above(impute_table, c( " ", "RMSE" = 3, "Mean AE" = 3, "AV Bias" = 3))
 impute_table <- column_spec(impute_table, c(1,4,7), border_right = T)
 
 impute_table <- pack_rows(impute_table, "Whole\n Trajectories", 1, 2, label_row_css = "background_color")
@@ -3568,7 +3592,7 @@ impute_table <-
 impute_table <- row_spec(impute_table, 1, extra_css = "border-top: 1px solid;")
 impute_table <- row_spec(impute_table, c(1:nrow(impute_table_base)), extra_css = "vertical-align: middle !important;")
 
-impute_table <- add_header_above(impute_table, c( " ", "RMSE" = 3, "Median AE" = 3, "AV Bias" = 3))
+impute_table <- add_header_above(impute_table, c( " ", "RMSE" = 3, "Mean AE" = 3, "AV Bias" = 3))
 impute_table <- pack_rows(impute_table, "Whole\n Trajectories", 1, 2, label_row_css = "background_color")
 impute_table <- pack_rows(impute_table, "Observation\n Forecasts", 3, 5)
 

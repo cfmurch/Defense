@@ -59,13 +59,27 @@ plot_pred_adas_rebuild <- function(.dat){
 
 plot_diff_cdr_rebuild <- function(.dat, allrows){
   group_var <- "time"
+  #allrows <- nrow(allrows)
+  
+  .dat_orig <- .dat
+  .dat <- 
+  lapply(sort(unique(.dat$time)), function(xx){
+    .out <- rbind(.dat[.dat$time==xx & .dat$misclass == "False Positive",][1,], .dat[.dat$time==xx & .dat$misclass == "False Negative",][1,])
+    .out$prop <- NA
+    .out$prop[1] <- nrow(.dat[.dat$time==xx & .dat$misclass == "False Positive",]) / nrow(allrows[allrows$time==xx,])
+    .out$prop[2] <- nrow(.dat[.dat$time==xx & .dat$misclass == "False Negative",]) / nrow(allrows[allrows$time==xx,])
+    return(.out)
+  })
+  .dat <- do.call(rbind, .dat)
+  .dat <- .dat[-which(is.na(.dat$time)),]
   
   plot_curr <- 
     ggplot(data = .dat[!.dat$misclass == "Correct",], aes_string(x = group_var)) + 
-    geom_bar(aes(y=(..count..)/(sum(..count..) + (allrows - nrow(.dat))), fill = misclass), position = position_dodge(0.40), width = 0.35, color = "black") + 
+    #geom_bar(aes(y=(..count..)/(sum(..count..) + (allrows - nrow(.dat))), fill = misclass), position = position_dodge(0.40), width = 0.35, color = "black") + 
+    geom_bar(aes(y=prop, fill = misclass), stat="identity", position = position_dodge(0.40), width = 0.35, color = "black") + 
     
     scale_fill_brewer(breaks = c("False Positive", "False Negative"), type = "qual", palette = "Set1") + 
-    scale_y_continuous(name = "Proportion misclassified", labels = scales::percent_format()) + 
+    scale_y_continuous(name = "Proportion misclassified by time", labels = scales::percent_format()) + 
     scale_x_continuous(name = "Years", breaks=c(0:100), labels=c(0:100)) + 
     expand_limits(x = c(min(.dat[[group_var]], max(.dat[[group_var]])))) + 
     
